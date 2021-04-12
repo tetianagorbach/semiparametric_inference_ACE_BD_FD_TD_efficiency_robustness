@@ -88,7 +88,7 @@ load(file="twodoor_minus_backdoor_example.rData")
 
 # Plotting:
 ```{r}
-bitmap("example_var_td_minus_var_bd.png", height = 80, width = 150, units = "mm",  res=600, pointsize=10)
+bitmap("fig_example_var_td_minus_var_bd.png", height = 80, width = 150, units = "mm",  res=600, pointsize=10)
 op <- par(no.readonly=T)
 par(mar=c(4,3,0,1))
 plot(expit(sim.cases$par.z.a), sim.cases$diff, pch=20, cex = 0.1, xlab = TeX("P(Z(1)=1)"), ylab="")
