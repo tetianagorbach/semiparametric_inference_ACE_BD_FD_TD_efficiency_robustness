@@ -86,18 +86,18 @@ BoundFrontDoor <- function(astar, a, pc, par.a.c, par.z.a, par.y.zc, sigma.y, si
   EZastar <- function(a_value){
     c(1, a_value) %*% par.z.a
   }
-  integrate(function(z) {
+  integrate(Vectorize(function(z) {
             fa_varY_az(a_value = astar, z_value = z) * pz_given_a(z_value = z, astar, par.z.a, sigma.z) + # sum_z f(z|a^*)*fa_varY_az(a*) + f(z|a)*fa_varY_az(a)
             fa_varY_az(a_value = a, z_value = z) * pz_given_a(z_value = z, a, par.z.a, sigma.z)
-  }, -Inf, Inf)$value -
-  2 * integrate(function(z) {
+  }), -Inf, Inf)$value -
+  2 * integrate(Vectorize(function(z) {
                 fa_varY_az(a_value = astar, z_value = z) * pz_given_a(z_value = z, a_value = a, par.z.a, sigma.z) + # sum_z  f(z|a)*fa_varY_az(a*) + f(z|a*)*fa_varY_az(a)
                 fa_varY_az(a_value = a, z_value = z) * pz_given_a(z_value = z, a_value = astar, par.z.a, sigma.z)
-      }, -Inf, Inf)$value +
-  integrate(function(z) {
+      }), -Inf, Inf)$value +
+  integrate(Vectorize(function(z) {
             fa_varY_az(a_value = astar, z_value = z) /sqrt(2*pi)/sigma.z * exp(-2 * (z - as.numeric(c(1, a) %*% par.z.a))^2 / (2 * sigma.z^2) + (z - as.numeric(c(1, astar) %*% par.z.a))^2 / (2 * sigma.z^2)) +
             fa_varY_az(a_value = a, z_value = z) /sqrt(2*pi)/sigma.z * exp(-2 * (z - as.numeric(c(1, astar) %*% par.z.a))^2 / (2 * sigma.z^2) + (z - as.numeric(c(1, a) %*% par.z.a))^2 / (2 * sigma.z^2))
-  }, -Inf, Inf)$value + # f^2(z|a)/f(z|a*)*fa_varY_az(a*) + f^2(z|a*)/f(z|a)*fa_varY_az(a)
+  }), -Inf, Inf)$value + # f^2(z|a)/f(z|a*)*fa_varY_az(a*) + f^2(z|a*)/f(z|a)*fa_varY_az(a)
   (par.y.zc[1] + par.y.zc[3] * pc)^2 * (1 / fa(a) + 1 / fa(astar)) + # sum_z f(z|a*)()^2/f(a*)) + same for a
   par.y.zc[2]^2 * (
     (sigma.z^2 + EZastar(astar)^2) / fa(astar) + (sigma.z^2 + EZastar(a)^2) / fa(a)
@@ -110,7 +110,7 @@ BoundFrontDoor <- function(astar, a, pc, par.a.c, par.z.a, par.y.zc, sigma.y, si
 }
 
 BoundEIFTwoBackDoor <- function(astar, a, pc, par.a.c, par.z.a, par.y.zc, sigma.y, sigma.z){
-        sigma.y^2 * p_c(c_value=0, pc) * integrate(function(z){
+        sigma.y^2 * p_c(c_value=0, pc) * integrate(Vectorize(function(z){
                 1/sqrt(2*pi*sigma.z^2) * ( 
                         exp(-(z-as.numeric(c(1,astar)%*%par.z.a))^2/(2*sigma.z^2)) +
                                 exp(-2*(z-as.numeric(c(1,a)%*%par.z.a))^2/(2*sigma.z^2) + (z-as.numeric(c(1,1)%*%par.z.a))^2/(2*sigma.z^2)) - 
@@ -118,8 +118,8 @@ BoundEIFTwoBackDoor <- function(astar, a, pc, par.a.c, par.z.a, par.y.zc, sigma.
                         ( pa_given_c(a_value=astar, c_value=0, par.a.c) +
                                   pa_given_c(a_value=a, c_value=0, par.a.c) * exp(-(z-as.numeric(c(1,a)%*%par.z.a))^2/(2*sigma.z^2)+(z-as.numeric(c(1,astar)%*%par.z.a))^2/(2*sigma.z^2))
                         )
-        }, -Inf, Inf)$value +
-                sigma.y^2 * p_c(c_value=1, pc) * integrate(function(z){
+        }), -Inf, Inf)$value +
+                sigma.y^2 * p_c(c_value=1, pc) * integrate(Vectorize(function(z){
                         1/sqrt(2*pi*sigma.z^2) * ( 
                                 exp(-(z-as.numeric(c(1,astar)%*%par.z.a))^2/(2*sigma.z^2)) +
                                         exp(-2*(z-as.numeric(c(1,a)%*%par.z.a))^2/(2*sigma.z^2) + (z-as.numeric(c(1,1)%*%par.z.a))^2/(2*sigma.z^2)) - 
@@ -127,7 +127,7 @@ BoundEIFTwoBackDoor <- function(astar, a, pc, par.a.c, par.z.a, par.y.zc, sigma.
                                 ( pa_given_c(a_value=astar, c_value=1, par.a.c) +
                                   pa_given_c(a_value=a, c_value=1, par.a.c) * exp(-(z-as.numeric(c(1,a)%*%par.z.a))^2/(2*sigma.z^2)+(z-as.numeric(c(1,astar)%*%par.z.a))^2/(2*sigma.z^2))
                                 )
-                }, -Inf, Inf)$value  -
+                }), -Inf, Inf)$value  -
                 sigma.y^2 * p_c(c_value=0, pc)*(1/pa_given_c(a_value=astar, c_value=0, par.a.c) + 1/pa_given_c(a_value=a, c_value=0, par.a.c)) -
                 sigma.y^2 * p_c(c_value=1, pc)*(1/pa_given_c(a_value=astar, c_value=1, par.a.c) + 1/pa_given_c(a_value=a, c_value=1, par.a.c)) + 
                 BoundBackDoor(astar=astar, a=a, pc=pc, par.a.c=par.a.c, par.y.zc=par.y.zc, sigma.y=sigma.y, sigma.z = sigma.z) 
