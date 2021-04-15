@@ -342,7 +342,6 @@ EstimateEIFTwoBackDoor <- function(cov.vals.all, exposure, intermediate, outcome
 }
 # EIF FD TD---------------------------------------------------------------
 EstimateEIFFrontTwoDoor <- function(cov.vals.all, exposure, intermediate, outcome, fit.a, fit.z, fit.y, astar){
-        browser()
         n <- length(exposure)
         ones <- rep(1,n)
         sigma.z <- summary(fit.z)$sigma

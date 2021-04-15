@@ -11,10 +11,10 @@ cl <- makeCluster(number.of.clusters)
 registerDoParallel(cl)
 set.seed(seed)
 
-sim.results <- matrix(nrow = 0, ncol=28)
+sim.results <- matrix(nrow = 0, ncol=29)
 colnames(sim.results) <-  c("dgp", "ate", "n","alpha1", "beta1", "gamma1", "gamma2",
                             "est.fd.semipar", "est.bd.semipar", "est.td.semipar", "est.eif.td.bd.semipar", "est.eif.fd.td.semipar","est.eif.all.semipar",
-                            "est.fd.par", "est.bd.par", "est.td.par", 
+                            "est.fd.par", "est.bd.par", "est.td.par", "est.naive",
                             "est.var.fd.semipar", "est.var.bd.semipar", "est.var.td.semipar", "est.var.td.bd.semipar","est.var.fd.td.semipar","est.var.all.semipar",
                             "bound.fd", "bound.bd", "bound.td", "bound.td.bd", "bound.fd.td","bound.fd.td.bd")
 
@@ -119,11 +119,12 @@ for (i in 1:nrow(parameters)){
                 est.bd.par <- as.numeric(fit.y.ac$coefficients["a"])
                 est.fd.par <- as.numeric(fit.y.az$coefficients["z"]) * as.numeric(fit.z$coefficients["a"]) * (1 - 0)
                 est.td.par <- as.numeric(fit.y$coefficients["z"]) * as.numeric(fit.z$coefficients["a"]) * (1 - 0)
+                est.naive <-  mean(data$y[data$a==1]) - mean(data$y[data$a==0])
 
                 #var.est.bd.par <- summary(fit.y.ac)$coefficients["a", "Std. Error"]^2*n
                 c(i,  ate,  n, parameters[i, "alpha1"], parameters[i,"beta1"], parameters[i,"gamma1"], parameters[i,"gamma2"],
                   sapply(list(est.if.fd, est.if.bd, est.if.td, est.eif.td.bd, est.eif.fd.td, est.eif.all), mean),
-                  est.fd.par, est.bd.par, est.td.par,
+                  est.fd.par, est.bd.par, est.td.par, est.naive,
                   sapply(list(est.if.fd, est.if.bd, est.if.td, est.eif.td.bd, est.eif.fd.td, est.eif.all), var),
                   bound.fd.value, bound.bd.value, bound.td.value, bound.eif.td.bd.value, bound.eif.fd.td.value, bound.eif.fd.td.bd.value)
         }
