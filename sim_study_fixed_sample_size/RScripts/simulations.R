@@ -11,7 +11,12 @@ cl <- makeCluster(number.of.clusters)
 registerDoParallel(cl)
 set.seed(seed)
 
-sim.results <- matrix(nrow = 0, ncol=26)
+sim.results <- matrix(nrow = 0, ncol=28)
+colnames(sim.results) <-  c("dgp", "ate", "n","alpha1", "beta1", "gamma1", "gamma2",
+                            "est.fd.semipar", "est.bd.semipar", "est.td.semipar", "est.eif.td.bd.semipar", "est.eif.fd.td.semipar","est.eif.all.semipar",
+                            "est.fd.par", "est.bd.par", "est.td.par", 
+                            "est.var.fd.semipar", "est.var.bd.semipar", "est.var.td.semipar", "est.var.td.bd.semipar","est.var.fd.td.semipar","est.var.all.semipar",
+                            "bound.fd", "bound.bd", "bound.td", "bound.td.bd", "bound.fd.td","bound.fd.td.bd")
 
 
 for (i in 1:nrow(parameters)){
@@ -51,6 +56,20 @@ for (i in 1:nrow(parameters)){
                                          par.y.zc = par.y.zc,
                                          sigma.y = sigma.y,
                                          sigma.z = sigma.z)
+        
+        bound.eif.fd.td.value <- BoundEIFFrontTwoDoor(astar = 1, a = 0, pc = pc,
+                                                     par.a.c = par.a.c,
+                                                     par.z.a = par.z.a,
+                                                     par.y.zc = par.y.zc,
+                                                     sigma.y = sigma.y,
+                                                     sigma.z = sigma.z)
+        
+        bound.eif.fd.td.bd.value <- BoundEIFFrontTwoBackDoor(astar = 1, a = 0, pc = pc,
+                                                             par.a.c = par.a.c,
+                                                             par.z.a = par.z.a,
+                                                             par.y.zc = par.y.zc,
+                                                             sigma.y = sigma.y,
+                                                             sigma.z = sigma.z)
         n <- sample.size
         parOut <- foreach(s=1:number.of.replicates, .combine='rbind') %dorng% {
                 # Generate data from DGP i with sample size n
@@ -61,14 +80,14 @@ for (i in 1:nrow(parameters)){
                                                    par.y.zc = par.y.zc,
                                                    sigma.z = sigma.z,
                                                    sigma.y = sigma.y)
-                
+
                 # Fit nuisance models
                 fit.z <- lm(z ~ a , data = data)
                 fit.y <- lm(y ~  z  + c, data = data)
                 fit.a <- glm(a ~ c, data = data, family = binomial)
                 fit.y.az <- lm(y ~ a + z, data = data)
                 fit.y.ac <- lm(y ~ a + c, data = data)
-                
+
                 # Semiparametric estimates
                 est.if.fd <- EstimateInfluenceFunctionFrontDoor(exposure = data$a,intermediate = data$z,outcome = data$y,
                                                                 fit.z = fit.z, fit.y.az = fit.y.az, astar = 1) -
@@ -86,40 +105,40 @@ for (i in 1:nrow(parameters)){
                                                         fit.a = fit.a, fit.z = fit.z, fit.y = fit.y, astar = 1) -
                         EstimateEIFTwoBackDoor(cov.vals.all = data$c, exposure = data$a,intermediate = data$z,outcome = data$y,
                                                fit.a = fit.a, fit.z = fit.z, fit.y = fit.y, astar = 0)
-                est.eif.td.fd <- EstimateEIFTwoFrontDoor(cov.vals.all= data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
+                est.eif.fd.td <- EstimateEIFFrontTwoDoor(cov.vals.all= data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
                                                          fit.a = fit.a, fit.z = fit.z, fit.y = fit.y, astar = 1) -
-                        EstimateEIFTwoFrontDoor(cov.vals.all = data$c, exposure = data$a,intermediate = data$z,outcome = data$y,
+                        EstimateEIFFrontTwoDoor(cov.vals.all = data$c, exposure = data$a,intermediate = data$z,outcome = data$y,
                                                 fit.a = fit.a, fit.z = fit.z, fit.y = fit.y, astar = 0)
                 est.eif.all <- EstimateEIFAll(cov.vals.all= data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
                                               fit.a = fit.a, fit.z = fit.z, fit.y = fit.y, astar = 1) -
                         EstimateEIFAll(cov.vals.all = data$c, exposure = data$a,intermediate = data$z,outcome = data$y,
                                        fit.a = fit.a, fit.z = fit.z, fit.y = fit.y, astar = 0)
-                
-                
+
+
                 # Parametric estimates
                 est.bd.par <- as.numeric(fit.y.ac$coefficients["a"])
                 est.fd.par <- as.numeric(fit.y.az$coefficients["z"]) * as.numeric(fit.z$coefficients["a"]) * (1 - 0)
                 est.td.par <- as.numeric(fit.y$coefficients["z"]) * as.numeric(fit.z$coefficients["a"]) * (1 - 0)
-                
+
                 #var.est.bd.par <- summary(fit.y.ac)$coefficients["a", "Std. Error"]^2*n
                 c(i,  ate,  n, parameters[i, "alpha1"], parameters[i,"beta1"], parameters[i,"gamma1"], parameters[i,"gamma2"],
-                  sapply(list(est.if.fd, est.if.bd, est.if.td, est.eif.td.bd, est.eif.td.fd, est.eif.all), mean),
+                  sapply(list(est.if.fd, est.if.bd, est.if.td, est.eif.td.bd, est.eif.fd.td, est.eif.all), mean),
                   est.fd.par, est.bd.par, est.td.par,
-                  sapply(list(est.if.fd, est.if.bd, est.if.td, est.eif.td.bd, est.eif.td.fd, est.eif.all), var),
-                  bound.fd.value, bound.bd.value, bound.td.value, bound.eif.td.bd.value)
+                  sapply(list(est.if.fd, est.if.bd, est.if.td, est.eif.td.bd, est.eif.fd.td, est.eif.all), var),
+                  bound.fd.value, bound.bd.value, bound.td.value, bound.eif.td.bd.value, bound.eif.fd.td.value, bound.eif.fd.td.bd.value)
         }
         sim.results <- rbind(sim.results, parOut)
+        if (i%%100 ==0){
+                save(sim.cases, file = paste0("sim_study_fixed_sample_size/results/results_sim_fixed_sample_size",  Sys.Date(), ".Rdata"))
+        }
 }
-colnames(sim.results) <-  c("dgp", "ate", "n","alpha1", "beta1", "gamma1", "gamma2",
-                             "est.fd.semipar", "est.bd.semipar", "est.td.semipar", "est.eif.td.bd.semipar", "est.eif.td.fd.semipar","est.eif.all.semipar",
-                              "est.fd.par", "est.bd.par", "est.td.par", 
-                              "est.var.fd.semipar", "est.var.bd.semipar", "est.var.td.semipar", "est.var.td.bd.semipar","est.var.td.fd.semipar","est.var.all.semipar",
-                              "bound.fd", "bound.bd", "bound.td", "bound.td.bd")
+
 
 rm(a, h, i, n, S, parOut, bound.td.value, bound.fd.value, bound.bd.value, ate, sample.sizes, parameters, bound.eif.td.bd.value, cl)
 rm(list = lsf.str())
 save(list = ls(), file = paste0("sim_study_fixed_sample_size/results/results_sim_fixed_sample_size",  Sys.Date(), ".Rdata"))
 
+stopCluster(cl)
 
 
 

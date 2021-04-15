@@ -49,9 +49,9 @@ BoundBackDoor <- function(astar, a, pc, par.a.c, par.y.zc, sigma.y, sigma.z){
    p_c(0, pc)/pa_given_c(astar, c_value = 0, par.a.c) + p_c(0, pc)/pa_given_c(a, c_value = 0, par.a.c) )
 }
 BoundTwoDoor <- function(astar, a, pc, par.a.c, par.z.a, par.y.zc, sigma.y, sigma.z){
-  sigma.y^2 * (integrate(function(z){1/sqrt(2*pi)/sigma.z *exp(-2*(z-as.numeric(c(1,astar)%*%par.z.a))^2/(2*sigma.z^2)+(z-as.numeric(c(1,a)%*%par.z.a))^2/(2*sigma.z^2))}, -Inf, Inf)$value-1) * 
+  sigma.y^2 * (integrate(Vectorize(function(z){1/sqrt(2*pi)/sigma.z * exp(-2*(z-as.numeric(c(1,astar)%*%par.z.a))^2/(2*sigma.z^2)+(z-as.numeric(c(1,a)%*%par.z.a))^2/(2*sigma.z^2))}), -Inf, Inf, rel.tol =1e-10)$value-1) * 
     (p_c(c_value=0, pc) * pa_given_c(a_value=a, c_value=0, par.a.c) + p_c(c_value=1, pc) * pa_given_c(a_value=a, c_value=1, par.a.c)) + 
-  sigma.y^2 * (integrate(function(z){1/sqrt(2*pi)/sigma.z *exp(-2*(z-as.numeric(c(1,a)%*%par.z.a))^2/(2*sigma.z^2)+(z-as.numeric(c(1,astar)%*%par.z.a))^2/(2*sigma.z^2))}, -Inf, Inf)$value-1)  * 
+  sigma.y^2 * (integrate(Vectorize(function(z){1/sqrt(2*pi)/sigma.z * exp(-2*(z-as.numeric(c(1,a)%*%par.z.a))^2/(2*sigma.z^2)+(z-as.numeric(c(1,astar)%*%par.z.a))^2/(2*sigma.z^2))}), -Inf, Inf, rel.tol =1e-10)$value-1)  * 
     (p_c(c_value=0, pc) * pa_given_c(a_value=astar, c_value=0, par.a.c) + p_c(c_value=1, pc) * pa_given_c(a_value=astar, c_value=1, par.a.c)) -
   sigma.y^2 * p_c(c_value=0, pc)*(1/pa_given_c(a_value=astar, c_value=0, par.a.c) + 1/pa_given_c(a_value=a, c_value=0, par.a.c)) -
   sigma.y^2 * p_c(c_value=1, pc)*(1/pa_given_c(a_value=astar, c_value=1, par.a.c) + 1/pa_given_c(a_value=a, c_value=1, par.a.c)) + 
@@ -89,15 +89,15 @@ BoundFrontDoor <- function(astar, a, pc, par.a.c, par.z.a, par.y.zc, sigma.y, si
   integrate(Vectorize(function(z) {
             fa_varY_az(a_value = astar, z_value = z) * pz_given_a(z_value = z, astar, par.z.a, sigma.z) + # sum_z f(z|a^*)*fa_varY_az(a*) + f(z|a)*fa_varY_az(a)
             fa_varY_az(a_value = a, z_value = z) * pz_given_a(z_value = z, a, par.z.a, sigma.z)
-  }), -Inf, Inf)$value -
+  }), -Inf, Inf, rel.tol =1e-10)$value -
   2 * integrate(Vectorize(function(z) {
                 fa_varY_az(a_value = astar, z_value = z) * pz_given_a(z_value = z, a_value = a, par.z.a, sigma.z) + # sum_z  f(z|a)*fa_varY_az(a*) + f(z|a*)*fa_varY_az(a)
                 fa_varY_az(a_value = a, z_value = z) * pz_given_a(z_value = z, a_value = astar, par.z.a, sigma.z)
-      }), -Inf, Inf)$value +
+      }), -Inf, Inf, rel.tol =1e-10)$value +
   integrate(Vectorize(function(z) {
             fa_varY_az(a_value = astar, z_value = z) /sqrt(2*pi)/sigma.z * exp(-2 * (z - as.numeric(c(1, a) %*% par.z.a))^2 / (2 * sigma.z^2) + (z - as.numeric(c(1, astar) %*% par.z.a))^2 / (2 * sigma.z^2)) +
             fa_varY_az(a_value = a, z_value = z) /sqrt(2*pi)/sigma.z * exp(-2 * (z - as.numeric(c(1, astar) %*% par.z.a))^2 / (2 * sigma.z^2) + (z - as.numeric(c(1, a) %*% par.z.a))^2 / (2 * sigma.z^2))
-  }), -Inf, Inf)$value + # f^2(z|a)/f(z|a*)*fa_varY_az(a*) + f^2(z|a*)/f(z|a)*fa_varY_az(a)
+  }), -Inf, Inf, rel.tol =1e-10)$value + # f^2(z|a)/f(z|a*)*fa_varY_az(a*) + f^2(z|a*)/f(z|a)*fa_varY_az(a)
   (par.y.zc[1] + par.y.zc[3] * pc)^2 * (1 / fa(a) + 1 / fa(astar)) + # sum_z f(z|a*)()^2/f(a*)) + same for a
   par.y.zc[2]^2 * (
     (sigma.z^2 + EZastar(astar)^2) / fa(astar) + (sigma.z^2 + EZastar(a)^2) / fa(a)
@@ -108,7 +108,6 @@ BoundFrontDoor <- function(astar, a, pc, par.a.c, par.z.a, par.y.zc, sigma.y, si
   par.y.zc[2]^2 * (EZastar(astar) - EZastar(a))^2 - # + sum_a f(a)* (sum_z EY|a,z (f(z|a*)- f(z|a)))^2
   (psi_true_continuous(astar, pc, par.z.a, par.y.zc) - psi_true_continuous(a, pc, par.z.a, par.y.zc))^2 #  - ATE^2
 }
-
 BoundEIFTwoBackDoor <- function(astar, a, pc, par.a.c, par.z.a, par.y.zc, sigma.y, sigma.z){
         sigma.y^2 * p_c(c_value=0, pc) * integrate(Vectorize(function(z){
                 1/sqrt(2*pi*sigma.z^2) * ( 
@@ -118,7 +117,7 @@ BoundEIFTwoBackDoor <- function(astar, a, pc, par.a.c, par.z.a, par.y.zc, sigma.
                         ( pa_given_c(a_value=astar, c_value=0, par.a.c) +
                                   pa_given_c(a_value=a, c_value=0, par.a.c) * exp(-(z-as.numeric(c(1,a)%*%par.z.a))^2/(2*sigma.z^2)+(z-as.numeric(c(1,astar)%*%par.z.a))^2/(2*sigma.z^2))
                         )
-        }), -Inf, Inf)$value +
+        }), -Inf, Inf, rel.tol =1e-10)$value +
                 sigma.y^2 * p_c(c_value=1, pc) * integrate(Vectorize(function(z){
                         1/sqrt(2*pi*sigma.z^2) * ( 
                                 exp(-(z-as.numeric(c(1,astar)%*%par.z.a))^2/(2*sigma.z^2)) +
@@ -127,10 +126,79 @@ BoundEIFTwoBackDoor <- function(astar, a, pc, par.a.c, par.z.a, par.y.zc, sigma.
                                 ( pa_given_c(a_value=astar, c_value=1, par.a.c) +
                                   pa_given_c(a_value=a, c_value=1, par.a.c) * exp(-(z-as.numeric(c(1,a)%*%par.z.a))^2/(2*sigma.z^2)+(z-as.numeric(c(1,astar)%*%par.z.a))^2/(2*sigma.z^2))
                                 )
-                }), -Inf, Inf)$value  -
+                }), -Inf, Inf, rel.tol =1e-10)$value  -
                 sigma.y^2 * p_c(c_value=0, pc)*(1/pa_given_c(a_value=astar, c_value=0, par.a.c) + 1/pa_given_c(a_value=a, c_value=0, par.a.c)) -
                 sigma.y^2 * p_c(c_value=1, pc)*(1/pa_given_c(a_value=astar, c_value=1, par.a.c) + 1/pa_given_c(a_value=a, c_value=1, par.a.c)) + 
                 BoundBackDoor(astar=astar, a=a, pc=pc, par.a.c=par.a.c, par.y.zc=par.y.zc, sigma.y=sigma.y, sigma.z = sigma.z) 
+}
+BoundEIFFrontTwoDoor <- function(astar, a, pc, par.a.c, par.z.a, par.y.zc, sigma.y, sigma.z){
+        fa <- function(a_value){
+                pa_given_c(a_value = a_value, c_value = 0, par.a.c = par.a.c) * p_c(c_value=0, pc=pc) +
+                        pa_given_c(a_value = a_value, c_value = 1, par.a.c = par.a.c) * p_c(c_value=1, pc=pc) }
+        EZastar <- function(a_value){
+                c(1, a_value) %*% par.z.a
+        }
+        sigma.y^2 * (integrate(
+                function(z){1/sqrt(2*pi)/sigma.z *exp(-2*(z-as.numeric(c(1,astar)%*%par.z.a))^2/(2*sigma.z^2)+(z-as.numeric(c(1,a)%*%par.z.a))^2/(2*sigma.z^2))},
+                -Inf, Inf, rel.tol =1e-10)$value-1) * 
+                (p_c(c_value=0, pc) * pa_given_c(a_value=a, c_value=0, par.a.c) + p_c(c_value=1, pc) * pa_given_c(a_value=a, c_value=1, par.a.c)) + 
+        sigma.y^2 * (integrate(
+                function(z){1/sqrt(2*pi)/sigma.z *exp(-2*(z-as.numeric(c(1,a)%*%par.z.a))^2/(2*sigma.z^2)+(z-as.numeric(c(1,astar)%*%par.z.a))^2/(2*sigma.z^2))},
+                -Inf, Inf, rel.tol =1e-10)$value-1)  * 
+                (p_c(c_value=0, pc) * pa_given_c(a_value=astar, c_value=0, par.a.c) + p_c(c_value=1, pc) * pa_given_c(a_value=astar, c_value=1, par.a.c)) +   # similar to BoundTwoDoor  
+        (par.y.zc[1] + par.y.zc[3] * pc)^2 * (1 / fa(a) + 1 / fa(astar)) + # sum_z f(z|a*)()^2/f(a*)) + same for a, as in BoundFrontDoor
+         par.y.zc[2]^2 * ((sigma.z^2 + EZastar(astar)^2) / fa(astar) + (sigma.z^2 + EZastar(a)^2) / fa(a)
+                          ) +
+        2 * par.y.zc[2] * (par.y.zc[1] + par.y.zc[3] * pc) * (EZastar(astar) / fa(astar) + EZastar(a) / fa(a)) -
+        (c(1, EZastar(astar), pc) %*% par.y.zc)^2 / fa(astar) - #  - E^2Y(a*)/f(a*), as in BoundFrontDoor
+        (c(1, EZastar(a), pc) %*% par.y.zc)^2 / fa(a)  #  - E^2Y(a)/f(a), as in BoundFrontDoor
+        # the last term is 0 since E[Y|A,z,c] = E[Y|z,c] in the considered data distribution
+}
+
+BoundEIFFrontTwoBackDoor <- function(astar, a, pc, par.a.c, par.z.a, par.y.zc, sigma.y, sigma.z){
+        fa <- function(a_value){
+                pa_given_c(a_value = a_value, c_value = 0, par.a.c = par.a.c) * p_c(c_value=0, pc=pc) +
+                        pa_given_c(a_value = a_value, c_value = 1, par.a.c = par.a.c) * p_c(c_value=1, pc=pc) }
+        EZastar <- function(a_value){
+                c(1, a_value) %*% par.z.a
+        }
+        
+        sigma.y^2 * p_c(c_value = 0, pc) / pa_given_c(a_value=0, c_value=0, par.a.c) * 
+                (2 - 4 * integrate(Vectorize(function(z){
+                        1/sqrt(2*pi)/sigma.z * exp(- (z - as.numeric(c(1, astar)%*%par.z.a))^2/(2 * sigma.z^2) )/
+                                (exp(- (z - as.numeric(c(1, astar)%*%par.z.a))^2/(2*sigma.z^2) +
+                                (z - as.numeric(c(1, a)%*%par.z.a))^2/(2*sigma.z^2)) + 1
+                        )
+        }), -Inf, Inf, rel.tol =1e-10)$value) + 
+        sigma.y^2 * p_c(c_value = 1, pc) * (
+                        integrate(Vectorize(function(z){1/sqrt(2*pi)/sigma.z * exp(- (z - as.numeric(c(1, astar)%*%par.z.a))^2/(2*sigma.z^2))/
+                                                 (pa_given_c(a_value = 0, c_value = 1, par.a.c) * 
+                                                          exp(- (z - as.numeric(c(1, a)%*%par.z.a))^2/(2*sigma.z^2) +
+                                                                (z - as.numeric(c(1, astar)%*%par.z.a))^2/(2*sigma.z^2)) +
+                                                pa_given_c(a_value = 1, c_value = 1, par.a.c) 
+                                            ) 
+                                                            
+                        }), -Inf, Inf, rel.tol = 1e-10)$value +
+                        integrate(Vectorize(function(z){1/sqrt(2*pi)/sigma.z * exp(- (z - as.numeric(c(1, a)%*%par.z.a))^2/(2*sigma.z^2))/
+                                        (pa_given_c(a_value = 0, c_value = 1, par.a.c)  + 
+                                         pa_given_c(a_value = 1, c_value = 1, par.a.c)  * exp(- (z - as.numeric(c(1, astar)%*%par.z.a))^2/(2*sigma.z^2) +
+                                                                                                (z - as.numeric(c(1, a)%*%par.z.a))^2/(2*sigma.z^2))                                       
+                                        ) 
+                        }), -Inf, Inf, rel.tol = 1e-10)$value -
+                        2 * integrate(Vectorize(function(z){1/sqrt(2*pi)/sigma.z * exp(- (z-as.numeric(c(1, astar)%*%par.z.a))^2/(2*sigma.z^2))/
+                                        (pa_given_c(a_value = 0, c_value = 1, par.a.c) +
+                                         pa_given_c(a_value = 1, c_value = 1, par.a.c)  *  exp(- (z - as.numeric(c(1, astar)%*%par.z.a))^2/(2*sigma.z^2) +
+                                                                                                 (z - as.numeric(c(1, a)%*%par.z.a))^2/(2*sigma.z^2)) 
+                                        ) 
+                         }), -Inf, Inf, rel.tol = 1e-10)$value
+        ) +
+        (par.y.zc[1] + par.y.zc[3] * pc)^2 * (1 / fa(a) + 1 / fa(astar)) + # sum_z f(z|a*)()^2/f(a*)) + same for a, as in BoundFrontDoor
+                par.y.zc[2]^2 * ((sigma.z^2 + EZastar(astar)^2) / fa(astar) + (sigma.z^2 + EZastar(a)^2) / fa(a)
+        ) +
+        2 * par.y.zc[2] * (par.y.zc[1] + par.y.zc[3] * pc) * (EZastar(astar) / fa(astar) + EZastar(a) / fa(a)) -
+        (c(1, EZastar(astar), pc) %*% par.y.zc)^2 / fa(astar) - #  - E^2Y(a*)/f(a*), as in BoundFrontDoor
+        (c(1, EZastar(a), pc) %*% par.y.zc)^2 / fa(a)  #  - E^2Y(a)/f(a), as in BoundFrontDoor
+        # the last term is 0 since E[Y|A,z,c] = E[Y|z,c] in the considered data distribution
 }
 
 # TD ---------------------------------------------------------------------
@@ -272,89 +340,11 @@ EstimateEIFTwoBackDoor <- function(cov.vals.all, exposure, intermediate, outcome
         
         return(psi.td.ind)
 }
-
-# InfluenceFunctionFrontDoor <- function(exposure, intermediate, outcome, pc, par.a.c, par.z.a, par.y.zc, sigma.y, sigma.z, astar){
-#   
-#   n <- length(exposure)
-#   
-#   model.matrix.z <- as.matrix(data.frame(Intercept = rep(1,n), a=exposure ))
-#   model.matrix.y <- as.matrix(data.frame(Intercept = rep(1,n), a=exposure, z=intermediate ))
-#   
-#   model.matrix.z_astar <- model.matrix.z
-#   model.matrix.z_astar[,"a"] <- astar
-#   model.matrix.z_astar <- as.matrix(model.matrix.z_astar)
-#   
-#   y.par.hat <- c(par.y.zc[1] + par.y.zc[3]*0.5*(1-expit(0.5))/(1/4 +1/2*(1-expit(0.5))),
-#                  par.y.zc[3]*0.5*expit(0.5)/(1/4 +1/2*expit(0.5)) - par.y.zc[3]* 0.5*(1-expit(0.5))/(1/4 + 1/2*(1-expit(0.5))),
-#                  par.y.zc[2] )
-#   z.par.hat <- par.z.a
-#   
-#   z.mean_astar <- model.matrix.z_astar%*%z.par.hat
-#   z.mean_ind <- model.matrix.z%*%z.par.hat
-#   a.mean <- 1/4 +1/2*expit(0.5) # E(a) = P(A=1)
-#   y.mean <- model.matrix.y%*%y.par.hat
-#   
-#   
-#   sum.a <- as.matrix(cbind(rep(1,n),rep(a.mean,n), model.matrix.y[,"z"]))%*%y.par.hat
-#   sum.z <- as.matrix(cbind(rep(1,n),model.matrix.y[,"a"],z.mean_astar))%*%y.par.hat
-#   sum.az <- as.matrix(cbind(rep(1,n),rep(a.mean,n),z.mean_astar))%*%y.par.hat
-#   
-#   psi.fd.ind <-  (outcome - y.mean)*
-#     (dnorm(model.matrix.y[,"z"],z.mean_astar,sigma.z)/dnorm(model.matrix.y[,"z"],z.mean_ind,sigma.z))+
-#     as.numeric(exposure==astar)/(a.mean*astar + (1 - a.mean)*(1 - astar))*(sum.a - sum.az)+
-#     sum.z
-#   
-#   #psi.fd.hat <- mean(psi.fd.ind)
-#   psi.fd.hat <-  psi.fd.ind
-#   output <- psi.fd.hat
-#   return(output)
-#   
-# }
-# 
-# if.fd.true.var <- function(exposure, intermediate, outcome, pc, par.a.c, par.z.a, par.y.zc, sigma.y, sigma.z, astar){
-#   
-#   n <- length(exposure)
-#   
-#   model.matrix.z <- as.matrix(data.frame(Intercept = rep(1,n), a=exposure ))
-#   model.matrix.y <- as.matrix(data.frame(Intercept = rep(1,n), a=exposure, z=intermediate ))
-#   
-#   model.matrix.z_astar <- model.matrix.z
-#   model.matrix.z_astar[,"a"] <- astar
-#   model.matrix.z_astar <- as.matrix(model.matrix.z_astar)
-#   
-#   y.par.hat <- c(par.y.zc[1] + par.y.zc[3]*0.5*(1-expit(0.5))/(1/4 +1/2*(1-expit(0.5))),
-#                  par.y.zc[3]*0.5*expit(0.5)/(1/4 +1/2*expit(0.5)) - par.y.zc[3]* 0.5*(1-expit(0.5))/(1/4 + 1/2*(1-expit(0.5))),
-#                  par.y.zc[2] )
-#   z.par.hat <- par.z.a
-#   
-#   z.mean_astar <- model.matrix.z_astar%*%z.par.hat
-#   z.mean_ind <- model.matrix.z%*%z.par.hat
-#   a.mean <- 1/4 +1/2*expit(0.5) # E(a) = P(A=1)
-#   y.mean <- model.matrix.y%*%y.par.hat
-#   
-#   
-#   sum.a <- as.matrix(cbind(rep(1,n),rep(a.mean,n), model.matrix.y[,"z"]))%*%y.par.hat
-#   sum.z <- as.matrix(cbind(rep(1,n),model.matrix.y[,"a"],z.mean_astar))%*%y.par.hat
-#   sum.az <- as.matrix(cbind(rep(1,n),rep(a.mean,n),z.mean_astar))%*%y.par.hat
-#   
-#    psi.fd.ind <-  (outcome - y.mean)*#*
-#     (dnorm(model.matrix.y[,"z"],z.mean_astar,sigma.z)/dnorm(model.matrix.y[,"z"],z.mean_ind,sigma.z)) #+
-#     #  as.numeric(exposure==astar)/(a.mean*astar + (1 - a.mean)*(1 - astar))*(sum.a - sum.az)+
-#     # sum.z
-#   
-#   #psi.fd.hat <- mean(psi.fd.ind)
-#   
-#   output <- psi.fd.ind
-#   return(output)
-#   
-# }
-# 
-
-
-# EIF TD FD ---------------------------------------------------------------
-EstimateEIFTwoFrontDoor <- function(cov.vals.all, exposure, intermediate, outcome, fit.a, fit.z, fit.y, astar){
-     
+# EIF FD TD---------------------------------------------------------------
+EstimateEIFFrontTwoDoor <- function(cov.vals.all, exposure, intermediate, outcome, fit.a, fit.z, fit.y, astar){
+        browser()
         n <- length(exposure)
+        ones <- rep(1,n)
         sigma.z <- summary(fit.z)$sigma
         
         model.matrix.a <- as.matrix(data.frame(model.matrix(fit.a)))
@@ -374,26 +364,25 @@ EstimateEIFTwoFrontDoor <- function(cov.vals.all, exposure, intermediate, outcom
         
         a.mean <- expit(model.matrix.a%*%a.par.hat)
         
-        pa <-  t( (expit(c(1,1)%*%a.par.hat)%*%exposure + (1-expit(c(1,1)%*%a.par.hat))%*%(1-exposure))* mean(cov.vals.all) +  
-                (expit(c(1,0)%*%a.par.hat)%*%exposure + (1-expit(c(1,0)%*%a.par.hat))%*%(1-exposure))* (1-mean(cov.vals.all)))
+        pa <-  t( (expit(c(1,1)%*%a.par.hat)%*%exposure + (1-expit(c(1,1)%*%a.par.hat))%*%(1-exposure)) * mean(cov.vals.all) +  
+                (expit(c(1,0)%*%a.par.hat)%*%exposure + (1-expit(c(1,0)%*%a.par.hat))%*%(1-exposure)) * (1-mean(cov.vals.all)))
                 
         y.mean <- model.matrix.y%*%y.par.hat
         
         
         # E(Y|a,Z_i,C_i)=E(Y|Z_i, C_i)
-        sum.a <- model.matrix.y[,c("X.Intercept.", "z" )]%*%y.par.hat[c(1,2)] + y.par.hat[3]*mean(cov.vals.all)
-        sum.z <- as.matrix(cbind(rep(1,n),z.mean_astar,cov.vals.all))%*%y.par.hat
-        sum.az <- as.matrix(cbind(rep(1,n),z.mean_ind,mean(cov.vals.all)))%*%y.par.hat
-        psi.td.ind <-  (outcome - y.mean)*
-                (dnorm(model.matrix.y[,"z"],z.mean_astar,sigma.z)/dnorm(model.matrix.y[,"z"],z.mean_ind,sigma.z))+
-                as.numeric(exposure==astar)/pa*(sum.a - sum.az) +
+        sum.a <- model.matrix.y[,c("X.Intercept.", "z" )]%*%y.par.hat[c("(Intercept)", "z")] +
+                        y.par.hat["c"] * mean(cov.vals.all)
+        sum.z <- as.matrix(cbind( ones, z.mean_astar, cov.vals.all))%*%y.par.hat
+        sum.az <- as.matrix(cbind( ones, z.mean_ind, mean(cov.vals.all)))%*%y.par.hat
+        psi.fd.td.ind <-  (outcome - y.mean)*
+                (dnorm(model.matrix.y[,"z"], z.mean_astar, sigma.z)/dnorm(model.matrix.y[,"z"], z.mean_ind, sigma.z))+
+                as.numeric(exposure == astar)/pa*(sum.a - sum.az) +
                 sum.z
-        # psi.td.hat <- mean(psi.td.ind)
+
         
-        return(psi.td.ind)
+        return(psi.fd.td.ind)
 }
-
-
 # EIF All -----------------------------------------------------------------
 EstimateEIFAll <-  function(cov.vals.all, exposure, intermediate, outcome, fit.a, fit.z, fit.y, astar){
         n <- length(exposure)
@@ -425,20 +414,19 @@ EstimateEIFAll <-  function(cov.vals.all, exposure, intermediate, outcome, fit.a
         y.mean <- model.matrix.y%*%y.par.hat
         
         # E(Y|a,Z_i,C_i)=E(Y|Z_i, C_i)
-        sum.a <- model.matrix.y[,c("X.Intercept.", "z" )]%*%y.par.hat[c(1,2)] + y.par.hat[3]*mean(cov.vals.all)
-        sum.z <- as.matrix(cbind(rep(1,n),z.mean_astar,cov.vals.all))%*%y.par.hat
-        sum.az <- as.matrix(cbind(rep(1,n),z.mean_ind, mean(cov.vals.all)))%*%y.par.hat
-        sum.denom.az <- expit(cbind(1,cov.vals.all) %*%a.par.hat) * dnorm(model.matrix.y[,"z"],model.matrix.z1%*%z.par.hat,sigma.z) + 
-                (1 - expit(cbind(1,cov.vals.all)%*%a.par.hat)) * dnorm(model.matrix.y[,"z"],model.matrix.z0%*%z.par.hat,sigma.z)
+        sum.a <- model.matrix.y[,c("X.Intercept.", "z" )]%*%y.par.hat[c("(Intercept)", "z")] +  mean(cov.vals.all) * y.par.hat["c"]
+        sum.z <- as.matrix(cbind(rep(1,n), z.mean_astar, cov.vals.all))%*%y.par.hat
+        sum.az <- as.matrix(cbind(rep(1,n), z.mean_ind, mean(cov.vals.all)))%*%y.par.hat
+        sum.denom.az <- expit(cbind(1, cov.vals.all) %*%a.par.hat) * dnorm(model.matrix.y[,"z"], model.matrix.z1%*%z.par.hat, sigma.z) + 
+                   (1 - expit(cbind(1, cov.vals.all)%*%a.par.hat)) * dnorm(model.matrix.y[,"z"], model.matrix.z0%*%z.par.hat, sigma.z)
         
-        pa <-  t( (expit(c(1,1)%*%a.par.hat)%*%exposure + (1-expit(c(1,1)%*%a.par.hat))%*%(1-exposure))* mean(cov.vals.all) +  
-                          (expit(c(1,0)%*%a.par.hat)%*%exposure + (1-expit(c(1,0)%*%a.par.hat))%*%(1-exposure))* (1-mean(cov.vals.all)))
+        pa <-  t( (expit(c(1,1)%*%a.par.hat)%*%exposure + (1-expit(c(1,1)%*%a.par.hat))%*%(1-exposure))* mean(cov.vals.all) + # p(c=1)*p(A|c=1) 
+                          (expit(c(1,0)%*%a.par.hat)%*%exposure + (1-expit(c(1,0)%*%a.par.hat))%*%(1-exposure))* (1 - mean(cov.vals.all))) # p(c=0)p(A|c=0)
         
         psi.td.ind <-  (outcome - y.mean)*
-                (dnorm(model.matrix.y[,"z"],z.mean_astar,sigma.z)/sum.denom.az) +
-                as.numeric(exposure==astar)/pa*(sum.a - sum.az) +
+                (dnorm(model.matrix.y[,"z"], z.mean_astar, sigma.z)/sum.denom.az) +
+                as.numeric(exposure == astar)/pa * (sum.a - sum.az) +
                 sum.z
-        # psi.td.hat <- mean(psi.td.ind)
         
         return(psi.td.ind)
 }
