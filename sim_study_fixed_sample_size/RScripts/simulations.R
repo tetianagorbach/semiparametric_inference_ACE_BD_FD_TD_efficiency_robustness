@@ -3,9 +3,9 @@ require(foreach)
 require(doParallel)
 require(doRNG) # for independent RNG streams.
 
-
 source("sim_study_fixed_sample_size/RScripts/if_bounds_utils.R") # load functions
 source("sim_study_fixed_sample_size/RScripts/sim_study_parameters.R") # load parameters
+
 
 cl <- makeCluster(number.of.clusters) 
 registerDoParallel(cl)
@@ -129,15 +129,15 @@ for (i in 1:nrow(parameters)){
                   bound.fd.value, bound.bd.value, bound.td.value, bound.eif.td.bd.value, bound.eif.fd.td.value, bound.eif.fd.td.bd.value)
         }
         sim.results <- rbind(sim.results, parOut)
-        if (i%%100 ==0){
-                save(sim.cases, file = paste0("sim_study_fixed_sample_size/results/results_sim_fixed_sample_size",  Sys.Date(), ".Rdata"))
+        if (i%%100 == 0){
+                save(sim.results, file = output.file.name)
         }
 }
 
 
 rm(a, h, i, n, S, parOut, bound.td.value, bound.fd.value, bound.bd.value, ate, sample.sizes, parameters, bound.eif.td.bd.value, cl)
 rm(list = lsf.str())
-save(list = ls(), file = paste0("sim_study_fixed_sample_size/results/results_sim_fixed_sample_size",  Sys.Date(), ".Rdata"))
+save(list = ls(), file = output.file.name)
 
 stopCluster(cl)
 
