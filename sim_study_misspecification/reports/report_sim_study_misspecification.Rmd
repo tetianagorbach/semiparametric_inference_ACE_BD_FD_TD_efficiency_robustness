@@ -118,7 +118,7 @@ include.rownames = F
 
         
 ```{r, echo = F}
-# are bounds in the confidene intervals constructed from empirical variances?
+# are bounds in the confidence intervals constructed from empirical variances?
 
 # bounds <-  data.frame( method = c("FD", "FD TD", "BD", "BD TD", "TD", "BD FD TD"), 
 #                        bound = output[[2]][5:10][c("bound.FD", "bound.FDTD", "bound.BD", "bound.BDTD", "bound.TD", "bound.BDFDTD")])
