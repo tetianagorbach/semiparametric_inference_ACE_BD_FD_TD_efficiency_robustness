@@ -204,7 +204,7 @@ g_legend<-function(a.gplot){
 
 mylegend<- g_legend(p3)
 
-pdf("Figure_sim_study.pdf", height = 4, width = 6)
+pdf("Figure_sim_study1.pdf", height = 4, width = 6)
 grid.arrange(arrangeGrob(p1 + theme(legend.position="none"),
                                p2 + theme(legend.position="none"),
                                nrow=1, widths = c(20,19)),
