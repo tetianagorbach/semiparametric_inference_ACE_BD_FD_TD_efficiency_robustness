@@ -1,0 +1,147 @@
+---
+title: "Simulation study, misspecification"
+author: "Tetiana Gorbach"
+date: ""
+output:
+  pdf_document: default
+  toc: yes
+  toc_depth: 2
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+require(tidyverse)
+require(gridExtra)
+require(rsimsum)
+require(xtable)
+
+```
+\tableofcontents
+
+```{r, read results}
+load("../results/sim_study_misspecification_res2021_07_19_11_29_04.Rdata")
+sim.results <- as.data.frame(output[[1]])
+```
+
+Transform to a long format:
+
+```{r}
+sim.results.long <- sim.results %>%
+  gather(method, ate.est, BD:`BD FD TD`, factor_key = TRUE) %>%
+  mutate(
+    `estimated ATE - true ATE` = ate.est - ate,
+    method = factor(method, levels = c("FD", "FD TD", "BD", "BD TD", "TD", "BD FD TD")),
+    misspecification = factor(misspecification,
+      levels = c("Z", "C, A, Y", "C, Z", "A, Y"),
+      labels = c("1. p(Z|A)", "2. All except p(Z|A)", "3. p(C), p(Z|A)", "4. p(A|C), E(Y|Z,C)")
+    )
+  )
+```
+
+Boxplots of estimates per model misspecification and estimation method:
+
+```{r}
+cbbPalette <- c("#E69F00", "#D55E00", "#56B4E9", "#0072B2", "#009E73", "#000000", "#FF0000FF") # colorblind-friendly pallette
+names(cbbPalette) <- levels(sim.results.long$method)
+
+p <- sim.results.long %>%
+  ggplot(aes(x = misspecification, y = `estimated ATE - true ATE`, fill = method)) +
+  geom_boxplot() +
+  scale_fill_manual(values = alpha(cbbPalette, .8)) +
+  xlab("Model misspecification") +
+  theme_bw() +
+  theme(
+    text = element_text(size = 6),
+    axis.title = element_text(size = 8),
+    strip.text = element_text(size = 8)
+  ) +
+  theme(
+    legend.key.size = unit(2, "line"),
+    legend.position = "bottom",
+    legend.title = element_blank()
+  ) +
+  guides(fill = guide_legend(nrow = 1))
+pdf("Figure_sim_study_misspecification.pdf", height = 4, width = 6)
+p
+dev.off()
+```
+
+# Simulation results
+## BIAS and MSE 
+```{r}
+sim.results.long <- sim.results.long %>%
+  mutate(method = factor(method, levels = c("BD", "FD", "TD", "BD TD", "FD TD", "BD FD TD"))) # changing order of the levels for tables
+
+s2 <- simsum(
+  data = sim.results.long, estvarname = "ate.est", true = "ate", methodvar = "method", by = "misspecification",
+  x = T
+)
+
+result.bias.se.mse <- summary(s2, digits = 3, ci.level = 0.95, stats = c("bias", "empse", "mse"))$summ %>%
+  mutate(estim = paste0(format(round(est, digits = 3), nsmall = 3), " (", format(round(mcse, digits = 3), nsmall = 3), ")")) %>%
+  select(stat, estim, misspecification, method) %>%
+  spread(method, estim)
+```
+
+## Scaled empirical variance vs bounds
+
+```{r}
+result.sc.emp.var <- sim.results.long %>%
+  group_by(misspecification, method) %>%
+  summarise(sc.emp.var = var(sqrt(sample.size) * ate.est)) %>%
+  ungroup() %>%
+  mutate(mc.se.of.sc.emp.var = sqrt(2 * sc.emp.var^2 / number.of.replicates)) %>%
+  mutate(estim = paste0(format(round(sc.emp.var, digits = 3), nsmall = 3), " (", format(round(mc.se.of.sc.emp.var, digits = 3), nsmall = 3), ")")) %>%
+  select(misspecification, method, estim) %>%
+  spread(method, estim) %>%
+  add_column(stat = "ScEmpSE^2", .before = "misspecification") %>%
+  add_row(tibble_row(
+    stat = "Bound", misspecification = "",
+    BD = as.character(round(output[[2]]["bound.BD"], digits = 3)),
+    FD = as.character(round(output[[2]]["bound.FD"], digits = 3)),
+    TD = as.character(round(output[[2]]["bound.TD"], digits = 3)),
+    `BD TD` = as.character(round(output[[2]]["bound.BDTD"], digits = 3)),
+    `FD TD` = as.character(round(output[[2]]["bound.FDTD"], digits = 3)),
+    `BD FD TD` = as.character(round(output[[2]]["bound.BDFDTD"], digits = 3))
+  ))
+```
+
+Printing for LaTeX:
+```{r}
+print(xtable(
+  rbind(result.bias.se.mse, result.sc.emp.var),
+  align = rep("r", 9)
+),
+include.rownames = F
+)
+```
+
+        
+```{r, echo = F}
+# are bounds in the confidene intervals constructed from empirical variances?
+
+# bounds <-  data.frame( method = c("FD", "FD TD", "BD", "BD TD", "TD", "BD FD TD"), 
+#                        bound = output[[2]][5:10][c("bound.FD", "bound.FDTD", "bound.BD", "bound.BDTD", "bound.TD", "bound.BDFDTD")])
+# sim <-  sim.results.long%>%
+#         group_by( misspecification, method)%>%
+#         summarise(sc.emp.var = var(sqrt(n) * ate.est))%>%
+#         ungroup()%>%
+#         plyr::join(bounds)%>%
+#         mutate(mc.se.of.sc.emp.var = sqrt(2*sc.emp.var^2/number.of.replicates),
+#                cov.N = as.numeric(bound >= sc.emp.var - qnorm(0.975)*mc.se.of.sc.emp.var)*as.numeric(bound <= sc.emp.var + qnorm(0.975)*mc.se.of.sc.emp.var),
+#                cov.Chi2 = as.numeric(bound >= sc.emp.var*(number.of.replicates-1)/qchisq(0.975, number.of.replicates-1))*as.numeric(bound <= sc.emp.var*(number.of.replicates-1)/qchisq(0.025, number.of.replicates - 1)),
+#                 same.coverage.N.Chi2 = (cov.N == cov.Chi2))%>%
+#         arrange(misspecification)
+# 
+# sim%>%
+#         select(misspecification, method, cov.N)%>%
+#         spread(method, cov.N)
+# 
+# sim%>%
+#         select(misspecification, method, cov.Chi2)%>%
+#         spread(method, cov.Chi2)
+```
+
+
+
+
