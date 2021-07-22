@@ -1,5 +1,5 @@
 ---
-title: "Simulation study 2 with fixed sample size"
+title: "Simulation study 1"
 author: "Tetiana Gorbach"
 date: "2/23/2021"
 output:
@@ -14,6 +14,7 @@ require(tidyverse)
 require(gridExtra)
 require(rsimsum)
 require(xtable)
+require(gridExtra) # for ggplot
 
 ```
 \tableofcontents
@@ -80,39 +81,34 @@ rm(sim.results.bias, sim.results.bounds)
 
 
 ```{r}
-cbbPalette <- c("#E69F00","#D55E00", "#56B4E9", "#0072B2", "#009E73", "#000000", "#FF0000FF") # colorblind-friendly pallette
-names(cbbPalette) <- levels(sim.results.long$method)
+# cbbPalette <- c("#E69F00","#D55E00", "#56B4E9", "#0072B2", "#009E73", "#000000", "#FF0000FF") # colorblind-friendly pallette
+# names(cbbPalette) <- levels(sim.results.long$method)
 ##bitmap("Figure_sim_study.png", height = 120, width = 150, units = "mm",  res=600, pointsize=10)
-pdf("Figure_sim_study_old.pdf", height = 4, width = 6)
-sim%>%  mutate(gamma1_gamma2 = paste0("list(gamma[1]==", gamma1, ", gamma[2]==", gamma2, ")"),
-               beta_1 = paste0("beta==", beta))%>%
-        ggplot(aes(x = n, y = sc.emp.var))+ 
-        geom_ribbon(aes(ymin = sc.emp.var - qnorm(0.975)*mc.se.of.sc.emp.var, 
-                        ymax = sc.emp.var + qnorm(0.975)*mc.se.of.sc.emp.var, 
-                        group = method, fill = method),
-                    linetype = 1, alpha = 0.2) +
-        geom_line(aes(group = method,  linetype = method, col = method), size = 0.3) + 
-        geom_point(aes(shape = method, col = method), size = 1) +
-        geom_line(aes(x = n, y = bound, group = method,  linetype = method, col=method), size = 0.3) +
-        facet_grid(beta_1 ~ gamma1_gamma2,  scales = "free",
-                   labeller = label_parsed) +
-        labs(y = "Scaled empirical variance", x = "Sample size") +
-        theme_bw() +
-        theme(text = element_text(size = 6),
-              axis.title = element_text(size = 8), 
-              strip.text = element_text(size = 8)) +
-        scale_colour_manual(values = cbbPalette) +
-        scale_fill_manual(values = cbbPalette) +
-        theme(legend.key.size = unit(2,"line"),
-              legend.position="bottom",
-              legend.title = element_blank())+
-        guides(colour = guide_legend(nrow = 1))
-dev.off()
-
-library(gridExtra)
-
-
-library(gridExtra)
+# pdf("Figure_sim_study_old.pdf", height = 4, width = 6)
+# sim%>%  mutate(gamma1_gamma2 = paste0("list(gamma[1]==", gamma1, ", gamma[2]==", gamma2, ")"),
+#                beta_1 = paste0("beta==", beta))%>%
+#         ggplot(aes(x = n, y = sc.emp.var))+ 
+#         geom_ribbon(aes(ymin = sc.emp.var - qnorm(0.975)*mc.se.of.sc.emp.var, 
+#                         ymax = sc.emp.var + qnorm(0.975)*mc.se.of.sc.emp.var, 
+#                         group = method, fill = method),
+#                     linetype = 1, alpha = 0.2) +
+#         geom_line(aes(group = method,  linetype = method, col = method), size = 0.3) + 
+#         geom_point(aes(shape = method, col = method), size = 1) +
+#         geom_line(aes(x = n, y = bound, group = method,  linetype = method, col=method), size = 0.3) +
+#         facet_grid(beta_1 ~ gamma1_gamma2,  scales = "free",
+#                    labeller = label_parsed) +
+#         labs(y = "Scaled empirical variance", x = "Sample size") +
+#         theme_bw() +
+#         theme(text = element_text(size = 6),
+#               axis.title = element_text(size = 8), 
+#               strip.text = element_text(size = 8)) +
+#         scale_colour_manual(values = cbbPalette) +
+#         scale_fill_manual(values = cbbPalette) +
+#         theme(legend.key.size = unit(2,"line"),
+#               legend.position="bottom",
+#               legend.title = element_blank())+
+#         guides(colour = guide_legend(nrow = 1))
+# dev.off()
 
 
 cbbPalette <- c("#E69F00","#D55E00", "#56B4E9", "#0072B2", "#009E73", "#000000", "#FF0000FF") # colorblind-friendly pallette
@@ -137,6 +133,7 @@ p1 <- sim%>% filter(method %in% c("BD", "TD", "BD TD",  "BD FD TD"),
         facet_grid(beta_1 ~ gamma1_gamma2,  scales = "free",
                    labeller = label_parsed) +
         labs(y = "Scaled empirical variance", x = "Sample size") +
+        ggtitle("A") +
         theme_bw() +
         theme(text = element_text(size = 6),
               axis.title = element_text(size = 8), 
@@ -150,7 +147,7 @@ p1 <- sim%>% filter(method %in% c("BD", "TD", "BD TD",  "BD FD TD"),
         guides(colour = guide_legend(nrow = 1))
 
 
-p2 <- sim%>% filter(method %in% c("FD", "TD", "FD TD", "BD" , "BD FD TD"), 
+p2 <- sim%>% filter(method %in% c("FD", "TD", "FD TD", "BD FD TD"), 
               gamma1 == 1.5)%>%
         mutate(gamma1_gamma2 = paste0("list(gamma[1]==", gamma1, ", gamma[2]==", gamma2, ")"),
                beta_1 = paste0("beta==", beta))%>%
@@ -165,6 +162,7 @@ p2 <- sim%>% filter(method %in% c("FD", "TD", "FD TD", "BD" , "BD FD TD"),
         facet_grid(beta_1 ~ gamma1_gamma2,  scales = "free",
                    labeller = label_parsed) +
         labs( x = "Sample size") +
+        ggtitle("B") +
         theme_bw() +
         theme(text = element_text(size = 6),
               axis.title.y = element_blank(),
@@ -178,7 +176,7 @@ p2 <- sim%>% filter(method %in% c("FD", "TD", "FD TD", "BD" , "BD FD TD"),
               legend.title = element_blank())+
         guides(colour = guide_legend(nrow = 1))
 
-p3 <- sim%>% mutate(gamma1_gamma2 = paste0("list(gamma[1]==", gamma1, ", gamma[2]==", gamma2, ")"),
+p3 <- sim%>% mutate(gamma1_gamma2 = paste0("list(gamma[1]==", gamma1, ", gamma[2]==", gamma2, ")"), # for legend
                beta_1 = paste0("beta==", beta))%>%
         ggplot(aes(x = n, y = sc.emp.var))+ 
         geom_ribbon(aes(ymin = sc.emp.var - qnorm(0.975)*mc.se.of.sc.emp.var, 
@@ -212,10 +210,9 @@ grid.arrange(arrangeGrob(p1 + theme(legend.position="none"),
                                nrow=1, widths = c(20,19)),
                    mylegend, nrow=2,heights=c(10, 1))
 dev.off()
-
-
 ```
-# DGP vs, parameters
+
+# DGP vs parameters
 ```{r}
 print(xtable(sim.results%>%
         select( dgp,  beta, gamma1, gamma2)%>%
