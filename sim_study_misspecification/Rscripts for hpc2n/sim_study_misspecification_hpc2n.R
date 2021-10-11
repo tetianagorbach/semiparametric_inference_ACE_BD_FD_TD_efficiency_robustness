@@ -139,21 +139,29 @@ for (i in 1:nrow(parameters)){
                 fit.y.ac <- lm(y ~ a + c, data = data)
                 
                 fit.a.c.misspecified <- fit.a.c
-                fit.z.a.misspecified <- fit.z.a
-                fit.y.zc.misspecified <-  fit.y.zc
-                fit.y.az.misspecified <-  fit.y.az
-                fit.y.ac.misspecified <-  fit.y.ac
+                fit.a.c.misspecified$coefficients[ "(Intercept)"] <-  coef(glm(a ~ 1, data = data, family = binomial))
+                fit.a.c.misspecified$coefficients[ "c"] <- 0
                 
-                fit.a.c.misspecified$coefficients["c"] <- 0
-                fit.z.a.misspecified$coefficients["a"] <- 0
+                fit.z.a.misspecified <- fit.z.a
+                fit.z.a.misspecified$coefficients[ "(Intercept)"]  <-  lm(z ~ 1, data = data)$coefficients[ "(Intercept)"] 
+                fit.z.a.misspecified$coefficients[ "a"] <- 0
+                
+                
+                fit.y.zc.misspecified <- fit.y.zc 
+                fit.y.zc.misspecified$coefficients[c("(Intercept)", "c")] <- lm(y ~ c, data = data)$coefficients[c("(Intercept)", "c")]
                 fit.y.zc.misspecified$coefficients["z"] <- 0
+                
+                
+                fit.y.az.misspecified <-  fit.y.az
+                fit.y.az.misspecified$coefficients[c("(Intercept)", "a")]  <-  lm(y ~ a, data = data)$coefficients[c("(Intercept)", "a")]
                 fit.y.az.misspecified$coefficients["z"] <- 0
+                
+                fit.y.ac.misspecified <-  fit.y.ac
+                fit.y.ac.misspecified$coefficients[c("(Intercept)", "a")] <-  lm(y ~ a, data = data)$coefficients[c("(Intercept)", "a")]
                 fit.y.ac.misspecified$coefficients["c"] <- 0
                 
                 
                 # Semiparametric estimates
-                
-                
                 # Misspecified p(Z|A) - all consistent
                 est1 <-  c("misspecification" = 1,   "ate" = ate,
                            estimates(pc.miss = pc, 

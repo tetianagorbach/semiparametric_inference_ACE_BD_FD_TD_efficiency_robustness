@@ -19,7 +19,7 @@ require(xtable)
 \tableofcontents
 
 ```{r, read results}
-load("../results/sim_study_misspecification_res2021_07_19_11_29_04.Rdata")
+load("../results/sim_study_misspecification_res2021_07_22_17_41_00.Rdata")
 sim.results <- as.data.frame(output[[1]])
 ```
 
@@ -33,7 +33,7 @@ sim.results.long <- sim.results %>%
     method = factor(method, levels = c("FD", "FD TD", "BD", "BD TD", "TD", "BD FD TD")),
     misspecification = factor(misspecification,
       levels = c("Z", "C, A, Y", "C, Z", "A, Y"),
-      labels = c("1. p(Z|A)", "2. All except p(Z|A)", "3. p(C), p(Z|A)", "4. p(A|C), E(Y|Z,C)")
+      labels = c("1.p(Z|A)", "2.All except p(Z|A)", "3.p(C), p(Z|A)", "4.p(A|C), E(Y|Z,C)")
     )
   )
 ```
@@ -47,7 +47,7 @@ names(cbbPalette) <- levels(sim.results.long$method)
 p <- sim.results.long %>%
   ggplot(aes(x = misspecification, y = `estimated ATE - true ATE`, fill = method)) +
   geom_boxplot() +
-  scale_fill_manual(values = alpha(cbbPalette, .8)) +
+  scale_fill_manual(values = alpha(cbbPalette, .7)) +
   xlab("Model misspecification") +
   theme_bw() +
   theme(
@@ -61,6 +61,7 @@ p <- sim.results.long %>%
     legend.title = element_blank()
   ) +
   guides(fill = guide_legend(nrow = 1))
+
 pdf("Figure_sim_study_misspecification.pdf", height = 4, width = 6)
 p
 dev.off()
@@ -78,9 +79,10 @@ s2 <- simsum(
 )
 
 result.bias.se.mse <- summary(s2, digits = 3, ci.level = 0.95, stats = c("bias", "empse", "mse"))$summ %>%
-  mutate(estim = paste0(format(round(est, digits = 3), nsmall = 3), " (", format(round(mcse, digits = 3), nsmall = 3), ")")) %>%
+  mutate(estim = paste0(format(round(est, digits = 4), nsmall = 3), "(", format(round(mcse, digits = 3), nsmall = 3), ")")) %>%
   select(stat, estim, misspecification, method) %>%
   spread(method, estim)
+result.bias.se.mse
 ```
 
 ## Scaled empirical variance vs bounds
@@ -91,7 +93,7 @@ result.sc.emp.var <- sim.results.long %>%
   summarise(sc.emp.var = var(sqrt(sample.size) * ate.est)) %>%
   ungroup() %>%
   mutate(mc.se.of.sc.emp.var = sqrt(2 * sc.emp.var^2 / number.of.replicates)) %>%
-  mutate(estim = paste0(format(round(sc.emp.var, digits = 3), nsmall = 3), " (", format(round(mc.se.of.sc.emp.var, digits = 3), nsmall = 3), ")")) %>%
+  mutate(estim = paste0(format(round(sc.emp.var, digits = 4), nsmall = 3), "(", format(round(mc.se.of.sc.emp.var, digits = 3), nsmall = 3), ")")) %>%
   select(misspecification, method, estim) %>%
   spread(method, estim) %>%
   add_column(stat = "ScEmpSE^2", .before = "misspecification") %>%
@@ -104,9 +106,10 @@ result.sc.emp.var <- sim.results.long %>%
     `FD TD` = as.character(round(output[[2]]["bound.FDTD"], digits = 3)),
     `BD FD TD` = as.character(round(output[[2]]["bound.BDFDTD"], digits = 3))
   ))
+result.sc.emp.var
 ```
 
-Printing for LaTeX:
+## Printing for LaTeX:
 ```{r}
 print(xtable(
   rbind(result.bias.se.mse, result.sc.emp.var),
