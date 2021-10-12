@@ -15,4 +15,4 @@ ml OpenMPI/4.0.3
 ml R/4.0.0
 
 
-R --no-save --no-restore -f sim_study_varying_sample_sizes/simulations_try.R
+R --no-save --no-restore -f sim_study_1/Rscripts/run_simulations.R

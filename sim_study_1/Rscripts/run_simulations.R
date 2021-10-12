@@ -3,8 +3,8 @@ require(foreach)
 require(doParallel)
 require(doRNG) # for independent RNG streams.
 
-source("sim_study_varying_sample_sizes/if_bounds_utils.R") # load functions
-source("sim_study_varying_sample_sizes/sim_study_parameters3004_nrep1000nsim50000.R") # load parameters
+source("sim_study_1/Rscripts/if_bounds_utils.R") # load functions
+source("sim_study_1/Rscripts/sim_study_parameters3004_nrep1000nsim50000.R") # load parameters
 
 
 cl <- makeCluster(number.of.clusters) 
@@ -26,23 +26,23 @@ for (i in 1:nrow(parameters)){
         par.z.a <-  as.numeric(c(0, parameters$beta1[i]))
         par.y.zc <-  as.numeric(c(0, parameters$gamma1[i], parameters$gamma2[i]))
         
-        ate <- psi_true_continuous(astar = 1, pc = pc, par.z.a = par.z.a, par.y.zc = par.y.zc)-
-                psi_true_continuous(astar = 0, pc = pc, par.z.a = par.z.a, par.y.zc = par.y.zc)
+        ate <- calculate_mean_potential_outcome(astar = 1, pc = pc, par.z.a = par.z.a, par.y.zc = par.y.zc) -
+                calculate_mean_potential_outcome(astar = 0, pc = pc, par.z.a = par.z.a, par.y.zc = par.y.zc)
         #### Bounds ###
-        bound.bd.value <- BoundBackDoor(astar = 1, a = 0, pc = pc,
+        bound.bd.value <- CalculateBoundBackDoor(astar = 1, a = 0, pc = pc,
                                         par.a.c = par.a.c,
                                         par.y.zc = par.y.zc,
                                         sigma.y = sigma.y,
                                         sigma.z = sigma.z)
         
-        bound.td.value <- BoundTwoDoor(astar = 1, a = 0, pc = pc,
+        bound.td.value <- CalculateBoundTwoDoor(astar = 1, a = 0, pc = pc,
                                        par.a.c = par.a.c,
                                        par.z.a  = par.z.a,
                                        par.y.zc = par.y.zc,
                                        sigma.y = sigma.y,
                                        sigma.z = sigma.z)
         
-        bound.fd.value <- BoundFrontDoor(astar = 1, a = 0, pc = pc,
+        bound.fd.value <- CalculateBoundFrontDoor(astar = 1, a = 0, pc = pc,
                                          par.a.c = par.a.c,
                                          par.z.a = par.z.a,
                                          par.y.zc = par.y.zc,
@@ -50,21 +50,21 @@ for (i in 1:nrow(parameters)){
                                          sigma.z = sigma.z)
         
         
-        bound.eif.td.bd.value <- BoundEIFTwoBackDoor(astar = 1, a = 0, pc = pc,
+        bound.eif.td.bd.value <- CalculateBoundBackTwoDoor(astar = 1, a = 0, pc = pc,
                                          par.a.c = par.a.c,
                                          par.z.a = par.z.a,
                                          par.y.zc = par.y.zc,
                                          sigma.y = sigma.y,
                                          sigma.z = sigma.z)
         
-        bound.eif.fd.td.value <- BoundEIFFrontTwoDoor(astar = 1, a = 0, pc = pc,
+        bound.eif.fd.td.value <- CalculateBoundFrontTwoDoor(astar = 1, a = 0, pc = pc,
                                                      par.a.c = par.a.c,
                                                      par.z.a = par.z.a,
                                                      par.y.zc = par.y.zc,
                                                      sigma.y = sigma.y,
                                                      sigma.z = sigma.z)
         
-        bound.eif.fd.td.bd.value <- BoundEIFFrontTwoBackDoor(astar = 1, a = 0, pc = pc,
+        bound.eif.fd.td.bd.value <- CalculateBoundBackFrontTwoDoor(astar = 1, a = 0, pc = pc,
                                                              par.a.c = par.a.c,
                                                              par.z.a = par.z.a,
                                                              par.y.zc = par.y.zc,
@@ -73,7 +73,7 @@ for (i in 1:nrow(parameters)){
         for (n in sample.size){
                 parOut <- foreach(s=1:number.of.replicates, .combine='rbind') %dorng% {
                         # Generate data from DGP i with sample size n
-                        data <- gen_data_ca_binary_zy_cont(n,
+                        data <- generate_data_ca_binary_zy_cont(n,
                                                            pc = pc,
                                                            par.a.c = par.a.c,
                                                            par.z.a = par.z.a,
@@ -89,29 +89,29 @@ for (i in 1:nrow(parameters)){
                         fit.y.ac <- lm(y ~ a + c, data = data)
         
                         # Semiparametric estimates
-                        est.if.fd <- EstimateInfluenceFunctionFrontDoor(exposure = data$a,intermediate = data$z,outcome = data$y,
+                        est.if.fd <- EstimateIFFrontDoor(exposure = data$a,intermediate = data$z,outcome = data$y,
                                                                         fit.z = fit.z, fit.y.az = fit.y.az, astar = 1) -
-                                EstimateInfluenceFunctionFrontDoor(exposure = data$a,intermediate = data$z,outcome = data$y,
+                                EstimateIFFrontDoor(exposure = data$a,intermediate = data$z,outcome = data$y,
                                                                    fit.z = fit.z, fit.y.az = fit.y.az,  astar = 0)
-                        est.if.bd <- EstimateInfluenceFunctionBackDoor(cov.vals.all = data$c, exposure = data$a, outcome = data$y,
+                        est.if.bd <- EstimateIFBackDoor(cov.vals.all = data$c, exposure = data$a, outcome = data$y,
                                                                        fit.a = fit.a, fit.z = fit.z, fit.y.ac = fit.y.ac, astar = 1) -
-                                EstimateInfluenceFunctionBackDoor(cov.vals.all = data$c, exposure = data$a, outcome = data$y,
+                                EstimateIFBackDoor(cov.vals.all = data$c, exposure = data$a, outcome = data$y,
                                                                   fit.a = fit.a, fit.z = fit.z, fit.y.ac = fit.y.ac, astar = 0)
-                        est.if.td <- EstimateInfluenceFunctionTwoDoor(cov.vals.all= data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
+                        est.if.td <- EstimateIFTwoDoor(cov.vals.all= data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
                                                                       fit.a = fit.a, fit.z = fit.z, fit.y = fit.y, astar = 1) -
-                                EstimateInfluenceFunctionTwoDoor(cov.vals.all = data$c, exposure = data$a,intermediate = data$z,outcome = data$y,
+                                EstimateIFTwoDoor(cov.vals.all = data$c, exposure = data$a,intermediate = data$z,outcome = data$y,
                                                                  fit.a = fit.a, fit.z = fit.z, fit.y = fit.y, astar = 0)
-                        est.eif.td.bd <- EstimateEIFTwoBackDoor(cov.vals.all= data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
+                        est.eif.td.bd <- EstimateIFTwoBackDoor(cov.vals.all= data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
                                                                 fit.a = fit.a, fit.z = fit.z, fit.y = fit.y, astar = 1) -
-                                EstimateEIFTwoBackDoor(cov.vals.all = data$c, exposure = data$a,intermediate = data$z,outcome = data$y,
+                                EstimateIFTwoBackDoor(cov.vals.all = data$c, exposure = data$a,intermediate = data$z,outcome = data$y,
                                                        fit.a = fit.a, fit.z = fit.z, fit.y = fit.y, astar = 0)
-                        est.eif.fd.td <- EstimateEIFFrontTwoDoor(cov.vals.all= data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
+                        est.eif.fd.td <- EstimateIFFrontTwoDoor(cov.vals.all= data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
                                                                  fit.a = fit.a, fit.z = fit.z, fit.y = fit.y, astar = 1) -
-                                EstimateEIFFrontTwoDoor(cov.vals.all = data$c, exposure = data$a,intermediate = data$z,outcome = data$y,
+                                EstimateIFFrontTwoDoor(cov.vals.all = data$c, exposure = data$a,intermediate = data$z,outcome = data$y,
                                                         fit.a = fit.a, fit.z = fit.z, fit.y = fit.y, astar = 0)
-                        est.eif.all <- EstimateEIFAll(cov.vals.all= data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
+                        est.eif.all <- EstimateIFAll(cov.vals.all= data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
                                                       fit.a = fit.a, fit.z = fit.z, fit.y = fit.y, astar = 1) -
-                                EstimateEIFAll(cov.vals.all = data$c, exposure = data$a,intermediate = data$z,outcome = data$y,
+                                EstimateIFAll(cov.vals.all = data$c, exposure = data$a,intermediate = data$z,outcome = data$y,
                                                fit.a = fit.a, fit.z = fit.z, fit.y = fit.y, astar = 0)
         
         
@@ -121,7 +121,7 @@ for (i in 1:nrow(parameters)){
                         est.td.par <- as.numeric(fit.y$coefficients["z"]) * as.numeric(fit.z$coefficients["a"]) * (1 - 0)
                         est.naive <-  mean(data$y[data$a==1]) - mean(data$y[data$a==0])
         
-                        #var.est.bd.par <- summary(fit.y.ac)$coefficients["a", "Std. Error"]^2*n
+                        
                         c(i,  ate,  n, parameters[i, "alpha1"], parameters[i,"beta1"], parameters[i,"gamma1"], parameters[i,"gamma2"],
                           sapply(list(est.if.fd, est.if.bd, est.if.td, est.eif.td.bd, est.eif.fd.td, est.eif.all), mean),
                           est.fd.par, est.bd.par, est.td.par, est.naive,
