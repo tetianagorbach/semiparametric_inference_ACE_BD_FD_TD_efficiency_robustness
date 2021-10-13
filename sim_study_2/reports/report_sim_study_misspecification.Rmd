@@ -41,7 +41,7 @@ sim.results.long <- sim.results %>%
 Boxplots of estimates per model misspecification and estimation method:
 
 ```{r}
-cbbPalette <- c("#E69F00", "#D55E00", "#56B4E9", "#0072B2", "#009E73", "#000000", "#FF0000FF") # colorblind-friendly pallette
+cbbPalette <- c("#E69F00", "#D55E00", "#56B4E9", "#0072B2", "#009E73", "#000000", "#FF0000FF") # colorblind-friendly palette
 names(cbbPalette) <- levels(sim.results.long$method)
 
 p <- sim.results.long %>%

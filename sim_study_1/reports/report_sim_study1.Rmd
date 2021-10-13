@@ -1,0 +1,327 @@
+---
+title: "Simulation study 1"
+author: "Tetiana Gorbach"
+date: "2/23/2021"
+output:
+  pdf_document: default
+  toc: yes
+  toc_depth: 2
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+require(tidyverse)
+require(gridExtra)
+require(rsimsum)
+require(xtable)
+require(gridExtra) # for ggplot
+
+```
+\tableofcontents
+
+```{r, read results, echo=F}
+load("../results/results_sim_varied_sample_size_8dgp_nrep1000_n500002021_04_30_15_12_11.Rdata")
+sim.results <- as.data.frame(sim.results)
+rm(bound.eif.fd.td.bd.value, bound.eif.fd.td.value, par.a.c, par.y.zc, par.z.a, pc)
+```
+
+Transform to a long format:
+
+```{r}
+sim.results.long <- sim.results %>%
+  select(dgp, alpha1,
+    beta = beta1, gamma1, gamma2, n, ate,
+    FD = est.fd.semipar, `FD TD` = est.eif.fd.td.semipar,
+    BD = est.bd.semipar, `BD TD` = est.eif.td.bd.semipar,
+    TD = est.td.semipar, `BD FD TD` = est.eif.all.semipar,
+    naive = est.naive
+  ) %>%
+  gather(method, ate.est, FD:naive, factor_key = TRUE) %>%
+  group_by(dgp, n, method) %>%
+  summarise(
+    alpha1 = mean(alpha1),
+    beta = mean(beta),
+    gamma1 = mean(gamma1),
+    gamma2 = mean(gamma2),
+    sc.emp.var = var(sqrt(n) * ate.est),
+    bias = mean(ate.est - ate)
+  ) %>%
+  ungroup()
+```
+
+Calculate performance measures:
+```{r}
+sim.results.bias <- sim.results %>%
+  select(dgp, n, ate,
+    `FD` = est.fd.semipar, `FD TD` = est.eif.fd.td.semipar,
+    `BD` = est.bd.semipar, `BD TD` = est.eif.td.bd.semipar,
+    `TD` = est.td.semipar, `BD FD TD` = est.eif.all.semipar
+  ) %>%
+  gather(method, ate.est, `FD`:`BD FD TD`, factor_key = TRUE) %>%
+  group_by(dgp, n, method) %>%
+  summarise(
+    sc.emp.var = var(sqrt(n) * ate.est),
+    bias = mean(ate.est - ate)
+  )
+sim.results.bounds <- sim.results %>%
+  select(dgp, alpha1,
+    beta = beta1, gamma1, gamma2, n, ate,
+    `FD` = bound.fd, `FD TD` = bound.fd.td,
+    `BD` = bound.bd, `BD TD` = bound.td.bd,
+    `TD` = bound.td, `BD FD TD` = bound.fd.td.bd
+  ) %>%
+  gather(method, bound, `FD`:`BD FD TD`, factor_key = TRUE) %>%
+  group_by(dgp, n, method) %>%
+  summarise(
+    alpha1 = mean(alpha1),
+    beta = mean(beta),
+    gamma1 = mean(gamma1),
+    gamma2 = mean(gamma2),
+    bound = mean(bound)
+  )
+sim <- merge(sim.results.bias, sim.results.bounds) %>%
+  mutate(
+    mc.se.of.sc.emp.var = sqrt(2 * sc.emp.var^2 / number.of.replicates),
+    cov.N = as.numeric(bound >= sc.emp.var - qnorm(0.975) * mc.se.of.sc.emp.var) * as.numeric(bound <= sc.emp.var + qnorm(0.975) * mc.se.of.sc.emp.var),
+    cov.Chi2 = as.numeric(bound >= sc.emp.var * (number.of.replicates - 1) / qchisq(0.975, number.of.replicates - 1)) * as.numeric(bound <= sc.emp.var * (number.of.replicates - 1) / qchisq(0.025, number.of.replicates - 1)),
+    same.coverage.N.Chi2 = (cov.N == cov.Chi2)
+  ) %>%
+  arrange(dgp, method, n)
+rm(sim.results.bias, sim.results.bounds)
+```
+
+# Figure
+```{r}
+cbbPalette <- c("#E69F00", "#D55E00", "#56B4E9", "#0072B2", "#009E73", "#000000") # colorblind-friendly palette
+names(cbbPalette) <- levels(sim.results.long$method)[!levels(sim.results.long$method) == "naive"] # naive estimator is not included in the figure
+shapes <- 1:6
+names(shapes) <- levels(sim.results.long$method)[!levels(sim.results.long$method) == "naive"] # naive estimator is not included in the figure
+
+p1 <- sim %>%
+  filter(
+    method %in% c("BD", "TD", "BD TD", "BD FD TD"),
+    gamma1 != 0.5
+  ) %>%
+  mutate(
+    gamma1_gamma2 = paste0("list(gamma[1]==", gamma1, ", gamma[2]==", gamma2, ")"),
+    beta_1 = paste0("beta==", beta)
+  ) %>%
+  ggplot(aes(x = n, y = sc.emp.var)) +
+  geom_ribbon(aes(
+    ymin = sc.emp.var - qnorm(0.975) * mc.se.of.sc.emp.var,
+    ymax = sc.emp.var + qnorm(0.975) * mc.se.of.sc.emp.var,
+    group = method, fill = method
+  ),
+  linetype = 1, alpha = 0.2
+  ) +
+  geom_line(aes(group = method, col = method), size = 0.3, linetype = 1) +
+  geom_point(aes(shape = method, col = method), size = 0.5) +
+  geom_line(aes(x = n, y = bound, group = method, col = method), size = 0.3, linetype = 2) +
+  facet_grid(beta_1 ~ gamma1_gamma2,
+    scales = "free",
+    labeller = label_parsed
+  ) +
+  labs(y = "Scaled empirical variance", x = "Sample size") +
+  ggtitle("A") +
+  theme_bw() +
+  theme(
+    text = element_text(size = 6),
+    axis.title = element_text(size = 8),
+    strip.text = element_text(size = 8)
+  ) +
+  scale_shape_manual(values = shapes) +
+  scale_colour_manual(values = cbbPalette) +
+  scale_fill_manual(values = cbbPalette) +
+  theme(
+    legend.key.size = unit(2, "line"),
+    legend.position = "bottom",
+    legend.title = element_blank()
+  ) +
+  guides(colour = guide_legend(nrow = 1))
+
+
+p2 <- sim %>%
+  filter(
+    method %in% c("FD", "TD", "FD TD", "BD FD TD"),
+    gamma1 == 1.5
+  ) %>%
+  mutate(
+    gamma1_gamma2 = paste0("list(gamma[1]==", gamma1, ", gamma[2]==", gamma2, ")"),
+    beta_1 = paste0("beta==", beta)
+  ) %>%
+  ggplot(aes(x = n, y = sc.emp.var)) +
+  geom_ribbon(aes(
+    ymin = sc.emp.var - qnorm(0.975) * mc.se.of.sc.emp.var,
+    ymax = sc.emp.var + qnorm(0.975) * mc.se.of.sc.emp.var,
+    group = method, fill = method
+  ),
+  linetype = 1, alpha = 0.2
+  ) +
+  geom_line(aes(group = method, col = method), size = 0.3, linetype = 1) +
+  geom_point(aes(shape = method, col = method), size = 0.7) +
+  geom_line(aes(x = n, y = bound, group = method, col = method), size = 0.3, linetype = 2) +
+  facet_grid(beta_1 ~ gamma1_gamma2,
+    scales = "free",
+    labeller = label_parsed
+  ) +
+  labs(x = "Sample size") +
+  ggtitle("B") +
+  theme_bw() +
+  theme(
+    text = element_text(size = 6),
+    axis.title.y = element_blank(),
+    axis.title = element_text(size = 8),
+    strip.text = element_text(size = 8)
+  ) +
+  scale_shape_manual(values = shapes) +
+  scale_colour_manual(values = cbbPalette) +
+  scale_fill_manual(values = cbbPalette) +
+  theme(
+    legend.key.size = unit(2, "line"),
+    legend.position = "bottom",
+    legend.title = element_blank()
+  ) +
+  guides(colour = guide_legend(nrow = 1))
+
+p3 <- sim %>% # help plot, only used for the legend
+  ggplot(aes(x = n, y = sc.emp.var)) +
+  geom_ribbon(aes(
+    ymin = sc.emp.var - qnorm(0.975) * mc.se.of.sc.emp.var,
+    ymax = sc.emp.var + qnorm(0.975) * mc.se.of.sc.emp.var,
+    group = method, fill = method
+  ),
+  linetype = 1, alpha = 0.2
+  ) +
+  geom_line(aes(group = method, col = method), size = 0.3, linetype = 1) +
+  geom_point(aes(shape = method, col = method), size = 0.7) +
+  scale_shape_manual(values = shapes) +
+  scale_colour_manual(values = cbbPalette) +
+  scale_fill_manual(values = cbbPalette) +
+  theme(
+    legend.key.size = unit(2, "line"),
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    legend.background = element_rect(fill = "transparent")
+  ) +
+  guides(
+    colour = guide_legend(nrow = 1),
+    shape = guide_legend(nrow = 1)
+  )
+
+g_legend <- function(a.gplot) {
+  tmp <- ggplot_gtable(ggplot_build(a.gplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)
+}
+
+mylegend <- g_legend(p3)
+
+pdf("Figure_sim_study1.pdf", height = 4, width = 6)
+grid.arrange(arrangeGrob(p1 + theme(legend.position = "none"),
+  p2 + theme(legend.position = "none"),
+  nrow = 1, widths = c(20, 19)
+),
+mylegend,
+nrow = 2, heights = c(10, 1)
+)
+dev.off()
+```
+
+# DGP vs parameters
+```{r}
+print(xtable(sim.results %>%
+  select(dgp, beta1, gamma1, gamma2) %>%
+  group_by(dgp) %>%
+  summarise(
+    beta = mean(beta1),
+    gamma1 = mean(gamma1),
+    gamma2 = mean(gamma2)
+  ),
+digits = c(0, 0, 1, 1, 1), align = rep("r", 5)
+),
+include.rownames = F
+)
+```
+
+
+# Bias
+```{r}
+sim.results.long <- sim.results %>%
+  select(dgp, alpha1, beta1, gamma1, gamma2, n, ate,
+    FD = est.fd.semipar, `FD TD` = est.eif.fd.td.semipar,
+    BD = est.bd.semipar, `BD TD` = est.eif.td.bd.semipar,
+    TD = est.td.semipar, `BD FD TD` = est.eif.all.semipar,
+    naive = est.naive
+  ) %>%
+  gather(method, ate.est, FD:naive, factor_key = TRUE)
+s2 <- simsum(
+  data = sim.results.long, estvarname = "ate.est", true = "ate", methodvar = "method", by = c("dgp", "n"),
+  x = T
+)
+res.table <- summary(s2, digits = 3, ci.level = 0.95, stats = c("bias"))$summ %>%
+  mutate(estim = paste0(format(round(est, digits = 3), nsmall = 3), " (", format(round(mcse, digits = 3), nsmall = 3), ")")) %>%
+  select(stat, n, estim, dgp, method)
+
+print(xtable(res.table %>%
+               select(dgp, n, estim, method) %>%
+               spread(method, estim) %>%
+               select(dgp, n, naive, BD, FD, TD, `BD TD`, `FD TD`, `BD FD TD`),
+             align = rep("r", 10)
+), include.rownames = F)
+```
+
+# Scaled empirical variance
+```{r}
+print(xtable(sim %>%
+  mutate(estim = paste0(format(round(sc.emp.var, digits = 3), nsmall = 3), " (", format(round(mc.se.of.sc.emp.var, digits = 3), nsmall = 3), ")")) %>%
+  select(dgp, n, method, estim) %>%
+  spread(method, estim) %>%
+  select(dgp, n, BD, FD, TD, `BD TD`, `FD TD`, `BD FD TD`),
+align = rep("r", 9),
+digits = 0
+),
+include.rownames = F
+)
+```
+
+# Bounds
+```{r}
+print(xtable(sim.results %>%
+  select(dgp,
+    `FD` = bound.fd, `FD TD` = bound.fd.td,
+    `BD` = bound.bd, `BD TD` = bound.td.bd,
+    `TD` = bound.td, `BD FD TD` = bound.fd.td.bd
+  ) %>%
+  gather(method, bound, `FD`:`BD FD TD`, factor_key = TRUE) %>%
+  group_by(dgp, method) %>%
+  summarise(bound = mean(bound)) %>%
+  spread(method, bound) %>%
+  select(dgp, BD, FD, TD, `BD TD`, `FD TD`, `BD FD TD`),
+align = rep("r", 8)
+),
+include.rownames = F
+)
+```
+
+# Empirical SE (not presented)
+```{r, eval=FALSE}
+emp.se.table <- summary(s2, digits = 3, ci.level = 0.95, stats = c("empse"))$summ %>%
+  mutate(estim = format(round(est, digits = 3), nsmall = 3)) %>%
+  select(stat, n, estim, dgp, method)
+
+print(xtable(emp.se.table %>%
+  select(-c(stat)) %>%
+  spread(method, estim) %>%
+  select(dgp, n, BD, FD, TD, `BD TD`, `FD TD`, `BD FD TD`) %>%
+  arrange(dgp, n),
+align = rep("r", 9)
+),
+include.rownames = F
+)
+```
+
+
+
+
+
