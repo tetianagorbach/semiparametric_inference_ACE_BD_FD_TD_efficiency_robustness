@@ -38,7 +38,9 @@ sim.results.long <- sim.results %>%
   )
 ```
 
-Boxplots of estimates per model misspecification and estimation method:
+# Simulation results
+
+## Boxplots of estimates per model misspecification and estimation method:
 
 ```{r}
 cbbPalette <- c("#E69F00", "#D55E00", "#56B4E9", "#0072B2", "#009E73", "#000000", "#FF0000FF") # colorblind-friendly palette
@@ -62,12 +64,12 @@ p <- sim.results.long %>%
   ) +
   guides(fill = guide_legend(nrow = 1))
 
-pdf("Figure_sim_study_misspecification.pdf", height = 4, width = 6)
+pdf("Figure_sim_study2.pdf", height = 4, width = 6)
 p
 dev.off()
 ```
 
-# Simulation results
+
 ## BIAS and MSE 
 ```{r}
 sim.results.long <- sim.results.long %>%
@@ -118,33 +120,6 @@ print(xtable(
 include.rownames = F
 )
 ```
-
-        
-```{r, echo = F}
-# are bounds in the confidence intervals constructed from empirical variances?
-
-# bounds <-  data.frame( method = c("FD", "FD TD", "BD", "BD TD", "TD", "BD FD TD"), 
-#                        bound = output[[2]][5:10][c("bound.FD", "bound.FDTD", "bound.BD", "bound.BDTD", "bound.TD", "bound.BDFDTD")])
-# sim <-  sim.results.long%>%
-#         group_by( misspecification, method)%>%
-#         summarise(sc.emp.var = var(sqrt(n) * ate.est))%>%
-#         ungroup()%>%
-#         plyr::join(bounds)%>%
-#         mutate(mc.se.of.sc.emp.var = sqrt(2*sc.emp.var^2/number.of.replicates),
-#                cov.N = as.numeric(bound >= sc.emp.var - qnorm(0.975)*mc.se.of.sc.emp.var)*as.numeric(bound <= sc.emp.var + qnorm(0.975)*mc.se.of.sc.emp.var),
-#                cov.Chi2 = as.numeric(bound >= sc.emp.var*(number.of.replicates-1)/qchisq(0.975, number.of.replicates-1))*as.numeric(bound <= sc.emp.var*(number.of.replicates-1)/qchisq(0.025, number.of.replicates - 1)),
-#                 same.coverage.N.Chi2 = (cov.N == cov.Chi2))%>%
-#         arrange(misspecification)
-# 
-# sim%>%
-#         select(misspecification, method, cov.N)%>%
-#         spread(method, cov.N)
-# 
-# sim%>%
-#         select(misspecification, method, cov.Chi2)%>%
-#         spread(method, cov.Chi2)
-```
-
 
 
 
