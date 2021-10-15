@@ -1,6 +1,6 @@
 ## Functions for simulations
 
-# data generation and additional functions --------------------------------
+# Additional functions --------------------------------
 expit <- function(x) {
   exp(x) / (1 + exp(x))
 }
@@ -33,7 +33,9 @@ pz_given_a <- function(z_value, a_value, par.z.a, sigma.z) {
   dnorm(z_value, par.z.a %*% c(1, a_value), sigma.z)
 }
 
-generate_data_ca_binary_zy_cont <- function(n, pc, par.a.c, par.z.a, par.y.zc, sigma.z, sigma.y) {
+
+# Generate data -----------------------------------------------------------
+GenerateDataCABinaryZYCont <- function(n, pc, par.a.c, par.z.a, par.y.zc, sigma.z, sigma.y) {
   #' Generates the data for the simulation study
   #' @param n Number of observation to generate
   #' @param pc Parameter of the distribution of C
@@ -53,7 +55,7 @@ generate_data_ca_binary_zy_cont <- function(n, pc, par.a.c, par.z.a, par.y.zc, s
 }
 
 # Calculate true mean of potential outcome --------------------------------
-calculate_mean_potential_outcome <- function(astar, pc, par.z.a, par.y.zc) {
+CalculateMeanPotentialOutcome <- function(astar, pc, par.z.a, par.y.zc) {
   # The true value of EY(a*, Z(a*)) = int_{c,z} E(Y|Z=z,C=c)P(Z=z|A=a*, C=c)P(C=c)dcdz
   # according to the two-door adjustment, which is true in our simulated data.
   # E(a*, Z(a*)) = int_{c,z} E(Y|Z=z,C=c)P(Z=z|A=a*, C=c)P(C=c)dcdz =
@@ -143,10 +145,10 @@ CalculateBoundFrontDoor <- function(astar, a, pc, par.a.c, par.z.a, par.y.zc, si
     (c(1, EZastar(astar), pc) %*% par.y.zc)^2 / fa(astar) - #  - E^2Y(a*)/f(a*)
     (c(1, EZastar(a), pc) %*% par.y.zc)^2 / fa(a) + #  - E^2Y(a)/f(a)
     par.y.zc[2]^2 * (EZastar(astar) - EZastar(a))^2 - # + sum_a f(a)* (sum_z EY|a,z (f(z|a*)- f(z|a)))^2
-    (calculate_mean_potential_outcome(astar, pc, par.z.a, par.y.zc) - calculate_mean_potential_outcome(a, pc, par.z.a, par.y.zc))^2 #  - ATE^2
+    (CalculateMeanPotentialOutcome(astar, pc, par.z.a, par.y.zc) - CalculateMeanPotentialOutcome(a, pc, par.z.a, par.y.zc))^2 #  - ATE^2
 }
 
-CalculateBoundTwoDoor <- function(astar, a, pc, par.a.c, par.z.a, par.y.zc, sigma.y, sigma.z){
+CalculateBoundTwoDoor <- function(astar, a, pc, par.a.c, par.z.a, par.y.zc, sigma.y, sigma.z) {
   #' Calculates the two-door bound for estimation of EY(astar) - EY(a)
   #' @param astar The value of the treatment for treated
   #' @param a The value of the treatment for non-treated
@@ -158,13 +160,17 @@ CalculateBoundTwoDoor <- function(astar, a, pc, par.a.c, par.z.a, par.y.zc, sigm
   #' @param sigma.y Standard deviation of Y(a_value)|Z,C
   #'
   #' @return The two-door bound for the estimation of EY(astar) - EY(a)
-  sigma.y^2 * (integrate(Vectorize(function(z){1/sqrt(2*pi)/sigma.z * exp(-2*(z-as.numeric(c(1,astar)%*%par.z.a))^2/(2*sigma.z^2)+(z-as.numeric(c(1,a)%*%par.z.a))^2/(2*sigma.z^2))}), -Inf, Inf, rel.tol =1e-10)$value-1) * 
-    (p_c(c_value=0, pc) * pa_given_c(a_value=a, c_value=0, par.a.c) + p_c(c_value=1, pc) * pa_given_c(a_value=a, c_value=1, par.a.c)) + 
-  sigma.y^2 * (integrate(Vectorize(function(z){1/sqrt(2*pi)/sigma.z * exp(-2*(z-as.numeric(c(1,a)%*%par.z.a))^2/(2*sigma.z^2)+(z-as.numeric(c(1,astar)%*%par.z.a))^2/(2*sigma.z^2))}), -Inf, Inf, rel.tol =1e-10)$value-1)  * 
-    (p_c(c_value=0, pc) * pa_given_c(a_value=astar, c_value=0, par.a.c) + p_c(c_value=1, pc) * pa_given_c(a_value=astar, c_value=1, par.a.c)) -
-  sigma.y^2 * p_c(c_value=0, pc)*(1/pa_given_c(a_value=astar, c_value=0, par.a.c) + 1/pa_given_c(a_value=a, c_value=0, par.a.c)) -
-  sigma.y^2 * p_c(c_value=1, pc)*(1/pa_given_c(a_value=astar, c_value=1, par.a.c) + 1/pa_given_c(a_value=a, c_value=1, par.a.c)) + 
-    CalculateBoundBackDoor(astar=astar, a=a, pc=pc, par.a.c=par.a.c, par.y.zc=par.y.zc, sigma.y=sigma.y, sigma.z = sigma.z) 
+  sigma.y^2 * (integrate(Vectorize(function(z) {
+    1 / sqrt(2 * pi) / sigma.z * exp(-2 * (z - as.numeric(c(1, astar) %*% par.z.a))^2 / (2 * sigma.z^2) + (z - as.numeric(c(1, a) %*% par.z.a))^2 / (2 * sigma.z^2))
+  }), -Inf, Inf, rel.tol = 1e-10)$value - 1) *
+    (p_c(c_value = 0, pc) * pa_given_c(a_value = a, c_value = 0, par.a.c) + p_c(c_value = 1, pc) * pa_given_c(a_value = a, c_value = 1, par.a.c)) +
+    sigma.y^2 * (integrate(Vectorize(function(z) {
+      1 / sqrt(2 * pi) / sigma.z * exp(-2 * (z - as.numeric(c(1, a) %*% par.z.a))^2 / (2 * sigma.z^2) + (z - as.numeric(c(1, astar) %*% par.z.a))^2 / (2 * sigma.z^2))
+    }), -Inf, Inf, rel.tol = 1e-10)$value - 1) *
+      (p_c(c_value = 0, pc) * pa_given_c(a_value = astar, c_value = 0, par.a.c) + p_c(c_value = 1, pc) * pa_given_c(a_value = astar, c_value = 1, par.a.c)) -
+    sigma.y^2 * p_c(c_value = 0, pc) * (1 / pa_given_c(a_value = astar, c_value = 0, par.a.c) + 1 / pa_given_c(a_value = a, c_value = 0, par.a.c)) -
+    sigma.y^2 * p_c(c_value = 1, pc) * (1 / pa_given_c(a_value = astar, c_value = 1, par.a.c) + 1 / pa_given_c(a_value = a, c_value = 1, par.a.c)) +
+    CalculateBoundBackDoor(astar = astar, a = a, pc = pc, par.a.c = par.a.c, par.y.zc = par.y.zc, sigma.y = sigma.y, sigma.z = sigma.z)
 }
 
 CalculateBoundBackTwoDoor <- function(astar, a, pc, par.a.c, par.z.a, par.y.zc, sigma.y, sigma.z) {
@@ -308,20 +314,20 @@ CalculateBoundBackFrontTwoDoor <- function(astar, a, pc, par.a.c, par.z.a, par.y
 
 
 # Estimate influence functions for EY(astar)------------------------------------
-EstimateIFBackDoor <- function(cov.vals.all, exposure, outcome, fit.a, fit.z, fit.y.ac, astar) {
+EstimateIFBackDoor <- function(cov.vals.all, exposure, outcome, fit.a.c, fit.z.a, fit.y.ac, astar) {
   #' Estimates the IF for EY(astar) for an observation under the back-door assumption
   #' @param cov.vals.all The observed values of the confounders
   #' @param exposure The observed values of the treatment
   #' @param outcome The observed values of the outcomes
-  #' @param fit.a Fit of the model for the treatment A
-  #' @param fit.z Fit of the model for the mediator Z
-  #' @param fit.y.ac Fit of the model for the outcome Y
+  #' @param fit.a.c Fit of the model for the treatment A
+  #' @param fit.z.a Fit of the model for the mediator Z on A
+  #' @param fit.y.ac Fit of the model for the outcome Y on A and C
   #' @param astar Treatment value
   #'
   #' @return The estimate of the IF for EY(astar) for an observation under the back-door assumption
   n <- length(exposure)
 
-  model.matrix.a <- as.matrix(data.frame(model.matrix(fit.a)))
+  model.matrix.a <- as.matrix(data.frame(model.matrix(fit.a.c)))
   model.matrix.y <- as.matrix(data.frame(model.matrix(fit.y.ac)))
 
   model.matrix.y.astar <- data.frame(model.matrix.y)
@@ -329,7 +335,7 @@ EstimateIFBackDoor <- function(cov.vals.all, exposure, outcome, fit.a, fit.z, fi
   model.matrix.y.astar <- as.matrix(model.matrix.y.astar)
 
   y.par.hat <- summary(fit.y.ac)$coefficients[, 1]
-  a.par.hat <- summary(fit.a)$coefficients[, 1]
+  a.par.hat <- summary(fit.a.c)$coefficients[, 1]
 
   a.mean <- expit(model.matrix.a %*% a.par.hat)
   y.mean <- model.matrix.y %*% y.par.hat
@@ -341,21 +347,22 @@ EstimateIFBackDoor <- function(cov.vals.all, exposure, outcome, fit.a, fit.z, fi
   return(psi.bd.ind)
 }
 
-EstimateIFFrontDoor <- function(exposure, intermediate, outcome, fit.z, fit.y.az, astar) {
+EstimateIFFrontDoor <- function(exposure, intermediate, outcome, est.pa, fit.z.a, fit.y.az, astar) {
   #' Estimates the IF for EY(astar) for an observation under the front-door assumption
   #' @param exposure The observed values of the treatment
   #' @param intermediate The observed values of the mediator
   #' @param outcome The observed values of the outcomes
-  #' @param fit.z Fit of the model for the mediator Z
+  #' @param est.pa Estimated probability of A being 1
+  #' @param fit.z.a Fit of the model for the mediator Z
   #' @param fit.y.az Fit of the model for the outcome Y
   #' @param astar Treatment value
   #'
   #' @return The estimate of the IF for EY(astar) for an observation under the front-door assumption
   n <- length(exposure)
 
-  sigma.z <- summary(fit.z)$sigma
+  sigma.z <- summary(fit.z.a)$sigma
 
-  model.matrix.z <- as.matrix(data.frame(model.matrix(fit.z)))
+  model.matrix.z <- as.matrix(data.frame(model.matrix(fit.z.a)))
   model.matrix.y <- as.matrix(data.frame(model.matrix(fit.y.az)))
 
   model.matrix.z_astar <- data.frame(model.matrix.z)
@@ -363,11 +370,11 @@ EstimateIFFrontDoor <- function(exposure, intermediate, outcome, fit.z, fit.y.az
   model.matrix.z_astar <- as.matrix(model.matrix.z_astar)
 
   y.par.hat <- summary(fit.y.az)$coefficients[, 1]
-  z.par.hat <- summary(fit.z)$coefficients[, 1]
+  z.par.hat <- summary(fit.z.a)$coefficients[, 1]
 
   z.mean_astar <- model.matrix.z_astar %*% z.par.hat
   z.mean_ind <- model.matrix.z %*% z.par.hat
-  a.mean <- mean(exposure) # E(a) = P(A=1)
+  a.mean <- est.pa # E(a) = P(A=1)
   y.mean <- model.matrix.y %*% y.par.hat
 
 
@@ -383,32 +390,32 @@ EstimateIFFrontDoor <- function(exposure, intermediate, outcome, fit.z, fit.y.az
   return(psi.fd.ind)
 }
 
-EstimateIFTwoDoor <- function(cov.vals.all, exposure, intermediate, outcome, fit.a, fit.z, fit.y, astar) {
+EstimateIFTwoDoor <- function(cov.vals.all, exposure, intermediate, outcome, fit.a.c, fit.z.a, fit.y.zc, astar) {
   #' Estimates the IF for EY(astar) for an observation under the two-door assumption
   #' @param cov.vals.all The observed values of the confounders
   #' @param exposure The observed values of the treatment
   #' @param intermediate The observed values of the mediator
   #' @param outcome The observed values of the outcomes
-  #' @param fit.a Fit of the model for the treatment A
-  #' @param fit.z Fit of the model for the mediator Z
-  #' @param fit.y Fit of the model for the outcome Y
+  #' @param fit.a.c Fit of the model for the treatment A on C
+  #' @param fit.z.a Fit of the model for the mediator Z on A
+  #' @param fit.y.zc Fit of the model for the outcome Y on Z and C
   #' @param astar Treatment value
   #'
   #' @return The estimate of the IF for EY(astar) for an observation under the two-door assumption
   n <- length(exposure)
-  sigma.z <- summary(fit.z)$sigma
+  sigma.z <- summary(fit.z.a)$sigma
 
-  model.matrix.a <- as.matrix(data.frame(model.matrix(fit.a)))
-  model.matrix.z <- as.matrix(data.frame(model.matrix(fit.z)))
-  model.matrix.y <- as.matrix(data.frame(model.matrix(fit.y)))
+  model.matrix.a <- as.matrix(data.frame(model.matrix(fit.a.c)))
+  model.matrix.z <- as.matrix(data.frame(model.matrix(fit.z.a)))
+  model.matrix.y <- as.matrix(data.frame(model.matrix(fit.y.zc)))
 
   model.matrix.z_astar <- data.frame(model.matrix.z)
   model.matrix.z_astar[, "a"] <- astar
   model.matrix.z_astar <- as.matrix(model.matrix.z_astar)
 
-  y.par.hat <- summary(fit.y)$coefficients[, 1]
-  z.par.hat <- summary(fit.z)$coefficients[, 1]
-  a.par.hat <- summary(fit.a)$coefficients[, 1]
+  y.par.hat <- summary(fit.y.zc)$coefficients[, 1]
+  z.par.hat <- summary(fit.z.a)$coefficients[, 1]
+  a.par.hat <- summary(fit.a.c)$coefficients[, 1]
 
   z.mean_astar <- model.matrix.z_astar %*% z.par.hat
   z.mean_ind <- model.matrix.z %*% z.par.hat
@@ -426,24 +433,24 @@ EstimateIFTwoDoor <- function(cov.vals.all, exposure, intermediate, outcome, fit
   return(psi.td.ind)
 }
 
-EstimateIFTwoBackDoor <- function(cov.vals.all, exposure, intermediate, outcome, fit.a, fit.z, fit.y, astar) {
+EstimateIFBackTwoDoor <- function(cov.vals.all, exposure, intermediate, outcome, fit.a.c, fit.z.a, fit.y.zc, astar) {
   #' Estimates the IF for EY(astar) for an observation under the two- and the back-door assumptions
   #' @param cov.vals.all The observed values of the confounders
   #' @param exposure The observed values of the treatment
   #' @param intermediate The observed values of the mediator
   #' @param outcome The observed values of the outcomes
-  #' @param fit.a Fit of the model for the treatment A
-  #' @param fit.z Fit of the model for the mediator Z
-  #' @param fit.y Fit of the model for the outcome Y
+  #' @param fit.a.c Fit of the model for the treatment A on C
+  #' @param fit.z.a Fit of the model for the mediator Z
+  #' @param fit.y Fit of the model for the outcome Y on Z and C
   #' @param astar Treatment value
   #'
   #' @return The estimate of the IF for EY(astar) for an observation under the two- and the back-door assumptions
   n <- length(exposure)
-  sigma.z <- summary(fit.z)$sigma
+  sigma.z <- summary(fit.z.a)$sigma
 
-  model.matrix.a <- as.matrix(data.frame(model.matrix(fit.a)))
-  model.matrix.z <- as.matrix(data.frame(model.matrix(fit.z)))
-  model.matrix.y <- as.matrix(data.frame(model.matrix(fit.y)))
+  model.matrix.a <- as.matrix(data.frame(model.matrix(fit.a.c)))
+  model.matrix.z <- as.matrix(data.frame(model.matrix(fit.z.a)))
+  model.matrix.y <- as.matrix(data.frame(model.matrix(fit.y.zc)))
 
   model.matrix.z0 <- data.frame(model.matrix.z)
   model.matrix.z0[, "a"] <- 0
@@ -457,9 +464,9 @@ EstimateIFTwoBackDoor <- function(cov.vals.all, exposure, intermediate, outcome,
   model.matrix.z_astar[, "a"] <- astar
   model.matrix.z_astar <- as.matrix(model.matrix.z_astar)
 
-  y.par.hat <- summary(fit.y)$coefficients[, 1]
-  z.par.hat <- summary(fit.z)$coefficients[, 1]
-  a.par.hat <- summary(fit.a)$coefficients[, 1]
+  y.par.hat <- summary(fit.y.zc)$coefficients[, 1]
+  z.par.hat <- summary(fit.z.a)$coefficients[, 1]
+  a.par.hat <- summary(fit.a.c)$coefficients[, 1]
 
   z.mean_astar <- model.matrix.z_astar %*% z.par.hat
   z.mean_ind <- model.matrix.z %*% z.par.hat
@@ -476,81 +483,82 @@ EstimateIFTwoBackDoor <- function(cov.vals.all, exposure, intermediate, outcome,
     (dnorm(model.matrix.y[, "z"], z.mean_astar, sigma.z) / sum.denom.az) +
     as.numeric(exposure == astar) / (a.mean * astar + (1 - a.mean) * (1 - astar)) * (sum.a - sum.az) +
     sum.z
-  # psi.td.hat <- mean(psi.td.ind)
 
   return(psi.td.ind)
 }
 
-EstimateIFFrontTwoDoor <- function(cov.vals.all, exposure, intermediate, outcome, fit.a, fit.z, fit.y, astar) {
+EstimateIFFrontTwoDoor <- function(cov.vals.all, exposure, intermediate, outcome, est.pc, fit.a.c, fit.z.a, fit.y.zc, astar) {
   #' Estimates the IF for EY(astar) for an observation under the front- and the two-door assumptions
   #' @param cov.vals.all The observed values of the confounders
   #' @param exposure The observed values of the treatment
   #' @param intermediate The observed values of the mediator
   #' @param outcome The observed values of the outcomes
-  #' @param fit.a Fit of the model for the treatment A
-  #' @param fit.z Fit of the model for the mediator Z
-  #' @param fit.y Fit of the model for the outcome Y
+  #' @param est.pc Estimated probability of C being 1
+  #' @param fit.a.c Fit of the model for the treatment A on C
+  #' @param fit.z.a Fit of the model for the mediator Z
+  #' @param fit.y.zc Fit of the model for the outcome Y on Z and C
   #' @param astar Treatment value
   #'
   #' @return The estimate of the IF for EY(astar) for an observation under the front- and the two-door assumptions
   n <- length(exposure)
-  n <- length(exposure)
   ones <- rep(1, n)
-  sigma.z <- summary(fit.z)$sigma
-
-  model.matrix.a <- as.matrix(data.frame(model.matrix(fit.a)))
-  model.matrix.z <- as.matrix(data.frame(model.matrix(fit.z)))
-  model.matrix.y <- as.matrix(data.frame(model.matrix(fit.y)))
-
+  sigma.z <- summary(fit.z.a)$sigma
+  
+  model.matrix.a <- as.matrix(data.frame(model.matrix(fit.a.c)))
+  model.matrix.z <- as.matrix(data.frame(model.matrix(fit.z.a)))
+  model.matrix.y <- as.matrix(data.frame(model.matrix(fit.y.zc)))
+  
   model.matrix.z_astar <- data.frame(model.matrix.z)
   model.matrix.z_astar[, "a"] <- astar
   model.matrix.z_astar <- as.matrix(model.matrix.z_astar)
-
-  y.par.hat <- summary(fit.y)$coefficients[, 1]
-  z.par.hat <- summary(fit.z)$coefficients[, 1]
-  a.par.hat <- summary(fit.a)$coefficients[, 1]
-
+  
+  y.par.hat <- summary(fit.y.zc)$coefficients[, 1]
+  z.par.hat <- summary(fit.z.a)$coefficients[, 1]
+  a.par.hat <- summary(fit.a.c)$coefficients[, 1]
+  
   z.mean_astar <- model.matrix.z_astar %*% z.par.hat
   z.mean_ind <- model.matrix.z %*% z.par.hat
-
+  
   a.mean <- expit(model.matrix.a %*% a.par.hat)
-
-  pa <- t((expit(c(1, 1) %*% a.par.hat) %*% exposure + (1 - expit(c(1, 1) %*% a.par.hat)) %*% (1 - exposure)) * mean(cov.vals.all) +
-    (expit(c(1, 0) %*% a.par.hat) %*% exposure + (1 - expit(c(1, 0) %*% a.par.hat)) %*% (1 - exposure)) * (1 - mean(cov.vals.all)))
-
+  
+  pa <- t((expit(c(1, 1) %*% a.par.hat) %*% exposure + (1 - expit(c(1, 1) %*% a.par.hat)) %*% (1 - exposure)) * est.pc +
+            (expit(c(1, 0) %*% a.par.hat) %*% exposure + (1 - expit(c(1, 0) %*% a.par.hat)) %*% (1 - exposure)) * (1 - est.pc))
+  
   y.mean <- model.matrix.y %*% y.par.hat
-
+  
   # E(Y|a,Z_i,C_i)=E(Y|Z_i, C_i)
   sum.a <- model.matrix.y[, c("X.Intercept.", "z")] %*% y.par.hat[c("(Intercept)", "z")] +
-    y.par.hat["c"] * mean(cov.vals.all)
+    y.par.hat["c"] * est.pc
   sum.z <- as.matrix(cbind(ones, z.mean_astar, cov.vals.all)) %*% y.par.hat
-  sum.az <- as.matrix(cbind(ones, z.mean_ind, mean(cov.vals.all))) %*% y.par.hat
+  sum.az <- as.matrix(cbind(ones, z.mean_ind, est.pc)) %*% y.par.hat
   psi.fd.td.ind <- (outcome - y.mean) *
     (dnorm(model.matrix.y[, "z"], z.mean_astar, sigma.z) / dnorm(model.matrix.y[, "z"], z.mean_ind, sigma.z)) +
     as.numeric(exposure == astar) / pa * (sum.a - sum.az) +
     sum.z
   
+  
   return(psi.fd.td.ind)
 }
 
-EstimateIFAll <- function(cov.vals.all, exposure, intermediate, outcome, fit.a, fit.z, fit.y, astar) {
+EstimateIFBackFrontTwoDoor <- function(cov.vals.all, exposure, intermediate, outcome, est.pc, fit.a.c, fit.z.a, fit.y.zc, astar) {
   #' Estimates the IF for EY(astar) for an observation under the back-, front- and the two-door assumptions
   #' @param cov.vals.all The observed values of the confounders
   #' @param exposure The observed values of the treatment
   #' @param intermediate The observed values of the mediator
   #' @param outcome The observed values of the outcomes
-  #' @param fit.a Fit of the model for the treatment A
-  #' @param fit.z Fit of the model for the mediator Z
-  #' @param fit.y Fit of the model for the outcome Y
+  #' @param est.pc Estimated probability of C being 1
+  #' @param fit.a.c Fit of the model for the treatment A on C
+  #' @param fit.z.a Fit of the model for the mediator Z on A
+  #' @param fit.y.zc Fit of the model for the outcome Y on Z and C
   #' @param astar Treatment value
   #'
   #' @return The estimate of the IF for EY(astar) for an observation under the back-, the front- and the two-door assumptions
   n <- length(exposure)
-  sigma.z <- summary(fit.z)$sigma
+  sigma.z <- summary(fit.z.a)$sigma
 
-  model.matrix.a <- as.matrix(data.frame(model.matrix(fit.a)))
-  model.matrix.z <- as.matrix(data.frame(model.matrix(fit.z)))
-  model.matrix.y <- as.matrix(data.frame(model.matrix(fit.y)))
+  model.matrix.a <- as.matrix(data.frame(model.matrix(fit.a.c)))
+  model.matrix.z <- as.matrix(data.frame(model.matrix(fit.z.a)))
+  model.matrix.y <- as.matrix(data.frame(model.matrix(fit.y.zc)))
 
   model.matrix.z0 <- data.frame(model.matrix.z)
   model.matrix.z0[, "a"] <- 0
@@ -564,9 +572,9 @@ EstimateIFAll <- function(cov.vals.all, exposure, intermediate, outcome, fit.a, 
   model.matrix.z_astar[, "a"] <- astar
   model.matrix.z_astar <- as.matrix(model.matrix.z_astar)
 
-  y.par.hat <- summary(fit.y)$coefficients[, 1]
-  z.par.hat <- summary(fit.z)$coefficients[, 1]
-  a.par.hat <- summary(fit.a)$coefficients[, 1]
+  y.par.hat <- summary(fit.y.zc)$coefficients[, 1]
+  z.par.hat <- summary(fit.z.a)$coefficients[, 1]
+  a.par.hat <- summary(fit.a.c)$coefficients[, 1]
 
   z.mean_astar <- model.matrix.z_astar %*% z.par.hat
   z.mean_ind <- model.matrix.z %*% z.par.hat
@@ -574,14 +582,14 @@ EstimateIFAll <- function(cov.vals.all, exposure, intermediate, outcome, fit.a, 
   y.mean <- model.matrix.y %*% y.par.hat
 
   # E(Y|a,Z_i,C_i)=E(Y|Z_i, C_i)
-  sum.a <- model.matrix.y[, c("X.Intercept.", "z")] %*% y.par.hat[c("(Intercept)", "z")] + mean(cov.vals.all) * y.par.hat["c"]
+  sum.a <- model.matrix.y[, c("X.Intercept.", "z")] %*% y.par.hat[c("(Intercept)", "z")] + est.pc * y.par.hat["c"]
   sum.z <- as.matrix(cbind(rep(1, n), z.mean_astar, cov.vals.all)) %*% y.par.hat
-  sum.az <- as.matrix(cbind(rep(1, n), z.mean_ind, mean(cov.vals.all))) %*% y.par.hat
+  sum.az <- as.matrix(cbind(rep(1, n), z.mean_ind, est.pc)) %*% y.par.hat
   sum.denom.az <- expit(cbind(1, cov.vals.all) %*% a.par.hat) * dnorm(model.matrix.y[, "z"], model.matrix.z1 %*% z.par.hat, sigma.z) +
     (1 - expit(cbind(1, cov.vals.all) %*% a.par.hat)) * dnorm(model.matrix.y[, "z"], model.matrix.z0 %*% z.par.hat, sigma.z)
 
-  pa <- t((expit(c(1, 1) %*% a.par.hat) %*% exposure + (1 - expit(c(1, 1) %*% a.par.hat)) %*% (1 - exposure)) * mean(cov.vals.all) + # p(c=1)*p(A|c=1)
-    (expit(c(1, 0) %*% a.par.hat) %*% exposure + (1 - expit(c(1, 0) %*% a.par.hat)) %*% (1 - exposure)) * (1 - mean(cov.vals.all))) # p(c=0)p(A|c=0)
+  pa <- t((expit(c(1, 1) %*% a.par.hat) %*% exposure + (1 - expit(c(1, 1) %*% a.par.hat)) %*% (1 - exposure)) * est.pc + # p(C=1)*p(A|C=1)
+    (expit(c(1, 0) %*% a.par.hat) %*% exposure + (1 - expit(c(1, 0) %*% a.par.hat)) %*% (1 - exposure)) * (1 - est.pc)) # p(C=0)p(A|C=0)
 
   psi.td.ind <- (outcome - y.mean) *
     (dnorm(model.matrix.y[, "z"], z.mean_astar, sigma.z) / sum.denom.az) +

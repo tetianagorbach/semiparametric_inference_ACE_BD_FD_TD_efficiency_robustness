@@ -4,14 +4,13 @@ require(doParallel)
 require(doRNG) # for independent RNG streams.
 require(tidyverse)
 
-source("sim_study_misspecification/Rscripts/if_bounds_utils.R") # load functions
-source("sim_study_misspecification/Rscripts/sim_study_misspecification_parameters.R") # load parameters
-seed <- 1668613
+source("sim_study_1/Rscripts/if_bounds_utils.R") # load functions
+source("sim_study_2/Rscripts/sim_study_2_parameters.R") # load parameters
+
 
 cl <- makeCluster(number.of.clusters) 
 registerDoParallel(cl)
 set.seed(seed)
-
 
 sim.results <- matrix(nrow = 0, ncol=8)
 
@@ -20,48 +19,45 @@ estimates <- function(pc.miss,
                       fit.a.c.miss, pa.miss,
                       fit.z.a.miss, 
                       fit.y.zc.miss,
-                      fit.y.ac.miss,
+                      fit.y.ac.miss ,
                       fit.y.az.miss ) {
-        est.if.bd <- EstimateInfluenceFunctionBackDoor(cov.vals.all = data$c, exposure = data$a, outcome = data$y,
+        est.if.bd <- EstimateIFBackDoor(cov.vals.all = data$c, exposure = data$a, outcome = data$y,
                                                        fit.a.c = fit.a.c.miss, fit.z.a = fit.z.a.miss, fit.y.ac = fit.y.ac.miss, astar = 1) -
-                EstimateInfluenceFunctionBackDoor(cov.vals.all = data$c, exposure = data$a, outcome = data$y,
+                EstimateIFBackDoor(cov.vals.all = data$c, exposure = data$a, outcome = data$y,
                                                   fit.a.c = fit.a.c.miss, fit.z.a = fit.z.a.miss, fit.y.ac = fit.y.ac.miss, astar = 0)
         
-        est.if.fd <- EstimateInfluenceFunctionFrontDoor(exposure = data$a, intermediate = data$z, outcome = data$y, pa = pa.miss,
+        est.if.fd <- EstimateIFFrontDoor(exposure = data$a, intermediate = data$z, outcome = data$y, est.pa = pa.miss,
                                                         fit.z.a = fit.z.a.miss, fit.y.az = fit.y.az.miss, astar = 1) -
-                EstimateInfluenceFunctionFrontDoor(exposure = data$a, intermediate = data$z, outcome = data$y, pa = pa.miss,
+                EstimateIFFrontDoor(exposure = data$a, intermediate = data$z, outcome = data$y, est.pa = pa.miss,
                                                    fit.z.a = fit.z.a.miss, fit.y.az = fit.y.az.miss,  astar = 0)
         
-        
-        
-        est.if.td <- EstimateInfluenceFunctionTwoDoor(cov.vals.all= data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
+        est.if.td <- EstimateIFTwoDoor(cov.vals.all= data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
                                                       fit.a.c = fit.a.c.miss, fit.z.a = fit.z.a.miss, fit.y.zc = fit.y.zc.miss, astar = 1) -
-                EstimateInfluenceFunctionTwoDoor(cov.vals.all = data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
+                EstimateIFTwoDoor(cov.vals.all = data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
                                                  fit.a.c = fit.a.c.miss, fit.z.a = fit.z.a.miss, fit.y.zc = fit.y.zc.miss, astar = 0)
         
-        est.eif.bd.td <- EstimateEIFTwoBackDoor(cov.vals.all= data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
+        est.eif.bd.td <- EstimateIFBackTwoDoor(cov.vals.all= data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
                                                 fit.a.c = fit.a.c.miss, fit.z.a = fit.z.a.miss, fit.y.zc = fit.y.zc.miss, astar = 1) -
-                EstimateEIFTwoBackDoor(cov.vals.all = data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
+                EstimateIFBackTwoDoor(cov.vals.all = data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
                                        fit.a.c = fit.a.c.miss, fit.z.a = fit.z.a.miss, fit.y.zc = fit.y.zc.miss, astar = 0)
         
-        est.eif.fd.td <- EstimateEIFFrontTwoDoor(cov.vals.all= data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
+        est.eif.fd.td <- EstimateIFFrontTwoDoor(cov.vals.all= data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
                                                  est.pc = pc.miss, fit.a.c = fit.a.c.miss, fit.z.a = fit.z.a.miss, fit.y.zc = fit.y.zc.miss, astar = 1) -
-                EstimateEIFFrontTwoDoor(cov.vals.all = data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
+                EstimateIFFrontTwoDoor(cov.vals.all = data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
                                         est.pc = pc.miss, fit.a.c = fit.a.c.miss, fit.z.a = fit.z.a.miss, fit.y.zc = fit.y.zc.miss, astar = 0)
         
-        est.eif.all <- EstimateEIFAll(cov.vals.all= data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
+        est.eif.all <- EstimateIFBackFrontTwoDoor(cov.vals.all= data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
                                       est.pc = pc.miss,  fit.a.c = fit.a.c.miss, fit.z.a = fit.z.a.miss, fit.y.zc = fit.y.zc.miss, astar = 1) -
-                EstimateEIFAll(cov.vals.all = data$c, exposure = data$a,intermediate = data$z,outcome = data$y,
+                EstimateIFBackFrontTwoDoor(cov.vals.all = data$c, exposure = data$a,intermediate = data$z,outcome = data$y,
                                est.pc = pc.miss, fit.a.c = fit.a.c.miss, fit.z.a = fit.z.a.miss, fit.y.zc = fit.y.zc.miss, astar = 0)
         
         a <- apply(cbind(
                 est.if.bd, est.if.fd, est.if.td,
                 est.eif.bd.td, est.eif.fd.td, est.eif.all
-        ),
+        ), 
         MARGIN = 2, FUN = mean) # calculate estimates
         names(a) <-  c("BD", "FD", "TD", "BD TD", "FD TD", "BD FD TD")
         a
-        
 }
 for (i in 1:nrow(parameters)){
         print(i)
@@ -70,23 +66,23 @@ for (i in 1:nrow(parameters)){
         par.z.a <-  as.numeric(c(0, parameters$beta[i]))
         par.y.zc <-  as.numeric(c(0, parameters$gamma1[i], parameters$gamma2[i]))
         
-        ate <- psi_true_continuous(astar = 1, pc = pc, par.z.a = par.z.a, par.y.zc = par.y.zc)-
-                psi_true_continuous(astar = 0, pc = pc, par.z.a = par.z.a, par.y.zc = par.y.zc)
+        ate <- CalculateMeanPotentialOutcome(astar = 1, pc = pc, par.z.a = par.z.a, par.y.zc = par.y.zc)-
+                CalculateMeanPotentialOutcome(astar = 0, pc = pc, par.z.a = par.z.a, par.y.zc = par.y.zc)
         #### Bounds ###
-        bound.bd <- BoundBackDoor(astar = 1, a = 0, pc = pc,
+        bound.bd <- CalculateBoundBackDoor(astar = 1, a = 0, pc = pc,
                                   par.a.c = par.a.c,
                                   par.y.zc = par.y.zc,
                                   sigma.y = sigma.y,
                                   sigma.z = sigma.z)
         
-        bound.fd <- BoundFrontDoor(astar = 1, a = 0, pc = pc,
+        bound.fd <- CalculateBoundFrontDoor(astar = 1, a = 0, pc = pc,
                                    par.a.c = par.a.c,
                                    par.z.a = par.z.a,
                                    par.y.zc = par.y.zc,
                                    sigma.y = sigma.y,
                                    sigma.z = sigma.z)
         
-        bound.td <- BoundTwoDoor(astar = 1, a = 0, pc = pc,
+        bound.td <- CalculateBoundTwoDoor(astar = 1, a = 0, pc = pc,
                                  par.a.c = par.a.c,
                                  par.z.a  = par.z.a,
                                  par.y.zc = par.y.zc,
@@ -95,21 +91,21 @@ for (i in 1:nrow(parameters)){
         
         
         
-        bound.bd.td <- BoundEIFTwoBackDoor(astar = 1, a = 0, pc = pc,
+        bound.bd.td <- CalculateBoundBackTwoDoor(astar = 1, a = 0, pc = pc,
                                            par.a.c = par.a.c,
                                            par.z.a = par.z.a,
                                            par.y.zc = par.y.zc,
                                            sigma.y = sigma.y,
                                            sigma.z = sigma.z)
         
-        bound.fd.td <- BoundEIFFrontTwoDoor(astar = 1, a = 0, pc = pc,
+        bound.fd.td <- CalculateBoundFrontTwoDoor(astar = 1, a = 0, pc = pc,
                                             par.a.c = par.a.c,
                                             par.z.a = par.z.a,
                                             par.y.zc = par.y.zc,
                                             sigma.y = sigma.y,
                                             sigma.z = sigma.z)
         
-        bound.bd.fd.td <- BoundEIFFrontTwoBackDoor(astar = 1, a = 0, pc = pc,
+        bound.bd.fd.td <- CalculateBoundBackFrontTwoDoor (astar = 1, a = 0, pc = pc,
                                                    par.a.c = par.a.c,
                                                    par.z.a = par.z.a,
                                                    par.y.zc = par.y.zc,
@@ -123,7 +119,7 @@ for (i in 1:nrow(parameters)){
         
         parOut <- foreach(s=1:number.of.replicates, .combine='rbind') %dorng% {
                 # Generate data from DGP i with sample size n
-                data <- gen_data_ca_binary_zy_cont(n = sample.size,
+                data <- GenerateDataCABinaryZYCont(n = sample.size,
                                                    pc = pc,
                                                    par.a.c = par.a.c,
                                                    par.z.a = par.z.a,
@@ -145,14 +141,13 @@ for (i in 1:nrow(parameters)){
                 fit.a.c.misspecified$coefficients[ "c"] <- 0
                 
                 fit.z.a.misspecified <- fit.z.a
-                fit.z.a.misspecified$coefficients[ "(Intercept)"]  <-  lm(z ~ 1 , data = data)$coefficients[ "(Intercept)"] 
+                fit.z.a.misspecified$coefficients[ "(Intercept)"]  <-  lm(z ~ 1, data = data)$coefficients[ "(Intercept)"] 
                 fit.z.a.misspecified$coefficients[ "a"] <- 0
                 
                 
                 fit.y.zc.misspecified <- fit.y.zc 
-                fit.y.zc.misspecified$coefficients["z"] <- 0
                 fit.y.zc.misspecified$coefficients[c("(Intercept)", "c")] <- lm(y ~ c, data = data)$coefficients[c("(Intercept)", "c")]
-                
+                fit.y.zc.misspecified$coefficients["z"] <- 0
                 
                 
                 fit.y.az.misspecified <-  fit.y.az
@@ -164,10 +159,7 @@ for (i in 1:nrow(parameters)){
                 fit.y.ac.misspecified$coefficients["c"] <- 0
                 
                 
-                
                 # Semiparametric estimates
-                
-                
                 # Misspecified p(Z|A) - all consistent
                 est1 <-  c("misspecification" = 1,   "ate" = ate,
                            estimates(pc.miss = pc, 
@@ -179,15 +171,15 @@ for (i in 1:nrow(parameters)){
                 
                 # Only p(Z|A) correctly specified - TD unbiased, but BD&TD is biased
                 est2 <- c("misspecification" = 2,   "ate" = ate,
-                          estimates(pc.miss = pc/4, 
-                                    fit.a.c.miss = fit.a.c.misspecified, pa.miss = pa/4,
+                          estimates(pc.miss = 1/4, 
+                                    fit.a.c.miss = fit.a.c.misspecified, pa.miss = 1/4,
                                     fit.z.a.miss = fit.z.a, 
                                     fit.y.zc.miss = fit.y.zc.misspecified,
                                     fit.y.ac.miss = fit.y.ac.misspecified,
                                     fit.y.az.miss = fit.y.az.misspecified))
                 # Misspecified p(Z|A) & p(C) - FD, TD, FD&TD - unbiased, but FD&TD, BD&FD&TD  - biased
                 est3 <- c("misspecification" = 3,  "ate" = ate,
-                          estimates(pc.miss = pc/4, 
+                          estimates(pc.miss = 1/4, 
                                     fit.a.c.miss = fit.a.c, pa.miss = pa,
                                     fit.z.a.miss = fit.z.a.misspecified, 
                                     fit.y.zc.miss = fit.y.zc,
@@ -213,3 +205,6 @@ for (i in 1:nrow(parameters)){
 rm(i,  parOut,  parameters,  cl, bound.td, bound.fd, bound.bd, ate,  bound.bd.td, bound.fd.td, bound.bd.fd.td, bounds, sim.results)
 rm(list = lsf.str())
 save(list = ls(), file = output.file.name)
+
+
+

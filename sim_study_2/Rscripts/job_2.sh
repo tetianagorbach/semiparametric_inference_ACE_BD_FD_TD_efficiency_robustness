@@ -15,4 +15,4 @@ ml OpenMPI/4.0.3
 ml R/4.0.0
 
 
-R --no-save --no-restore -f sim_study_misspecification/sim_study_misspecification_hpc2n.R
+R --no-save --no-restore -f sim_study_2/Rscripts/run_sim_study_2.R

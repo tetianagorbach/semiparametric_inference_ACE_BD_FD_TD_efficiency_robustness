@@ -43,7 +43,8 @@ sim.results.long <- sim.results %>%
 ## Boxplots of estimates per model misspecification and estimation method:
 
 ```{r}
-cbbPalette <- c("#E69F00", "#D55E00", "#56B4E9", "#0072B2", "#009E73", "#000000", "#FF0000FF") # colorblind-friendly palette
+cbbPalette <- c("#E69F00", "#D55E00", "#56B4E9", "#0072B2", "#009E73", "#000000", "#FF0000FF") 
+# colorblind-friendly palette
 names(cbbPalette) <- levels(sim.results.long$method)
 
 p <- sim.results.long %>%
@@ -73,15 +74,20 @@ dev.off()
 ## BIAS and MSE 
 ```{r}
 sim.results.long <- sim.results.long %>%
-  mutate(method = factor(method, levels = c("BD", "FD", "TD", "BD TD", "FD TD", "BD FD TD"))) # changing order of the levels for tables
+  mutate(method = factor(method, 
+                         levels = c("BD", "FD", "TD", "BD TD", "FD TD", "BD FD TD"))) 
+# changing order of the levels for tables
 
 s2 <- simsum(
-  data = sim.results.long, estvarname = "ate.est", true = "ate", methodvar = "method", by = "misspecification",
+  data = sim.results.long, estvarname = "ate.est", true = "ate", 
+  methodvar = "method", by = "misspecification",
   x = T
 )
 
-result.bias.se.mse <- summary(s2, digits = 3, ci.level = 0.95, stats = c("bias", "empse", "mse"))$summ %>%
-  mutate(estim = paste0(format(round(est, digits = 4), nsmall = 3), "(", format(round(mcse, digits = 3), nsmall = 3), ")")) %>%
+result.bias.se.mse <- summary(s2, digits = 3, ci.level = 0.95, 
+                              stats = c("bias", "empse", "mse"))$summ %>%
+  mutate(estim = paste0(format(round(est, digits = 4), nsmall = 3), "(",
+                        format(round(mcse, digits = 3), nsmall = 3), ")")) %>%
   select(stat, estim, misspecification, method) %>%
   spread(method, estim)
 result.bias.se.mse
@@ -95,7 +101,8 @@ result.sc.emp.var <- sim.results.long %>%
   summarise(sc.emp.var = var(sqrt(sample.size) * ate.est)) %>%
   ungroup() %>%
   mutate(mc.se.of.sc.emp.var = sqrt(2 * sc.emp.var^2 / number.of.replicates)) %>%
-  mutate(estim = paste0(format(round(sc.emp.var, digits = 4), nsmall = 3), "(", format(round(mc.se.of.sc.emp.var, digits = 3), nsmall = 3), ")")) %>%
+  mutate(estim = paste0(format(round(sc.emp.var, digits = 4), nsmall = 3), "(", 
+                        format(round(mc.se.of.sc.emp.var, digits = 3), nsmall = 3), ")")) %>%
   select(misspecification, method, estim) %>%
   spread(method, estim) %>%
   add_column(stat = "ScEmpSE^2", .before = "misspecification") %>%

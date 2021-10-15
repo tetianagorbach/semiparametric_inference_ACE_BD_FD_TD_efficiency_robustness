@@ -4,7 +4,7 @@ require(doParallel)
 require(doRNG) # for independent RNG streams.
 
 source("sim_study_1/Rscripts/if_bounds_utils.R") # load functions
-source("sim_study_1/Rscripts/sim_study_parameters3004_nrep1000nsim50000.R") # load parameters
+source("sim_study_1/Rscripts/sim_study_1_parameters3004_nrep1000nsim50000.R") # load parameters
 
 
 cl <- makeCluster(number.of.clusters) 
@@ -26,8 +26,8 @@ for (i in 1:nrow(parameters)){
         par.z.a <-  as.numeric(c(0, parameters$beta1[i]))
         par.y.zc <-  as.numeric(c(0, parameters$gamma1[i], parameters$gamma2[i]))
         
-        ate <- calculate_mean_potential_outcome(astar = 1, pc = pc, par.z.a = par.z.a, par.y.zc = par.y.zc) -
-                calculate_mean_potential_outcome(astar = 0, pc = pc, par.z.a = par.z.a, par.y.zc = par.y.zc)
+        ate <- CalculateMeanPotentialOutcome(astar = 1, pc = pc, par.z.a = par.z.a, par.y.zc = par.y.zc) -
+                CalculateMeanPotentialOutcome(astar = 0, pc = pc, par.z.a = par.z.a, par.y.zc = par.y.zc)
         #### Bounds ###
         bound.bd.value <- CalculateBoundBackDoor(astar = 1, a = 0, pc = pc,
                                         par.a.c = par.a.c,
@@ -73,7 +73,7 @@ for (i in 1:nrow(parameters)){
         for (n in sample.size){
                 parOut <- foreach(s=1:number.of.replicates, .combine='rbind') %dorng% {
                         # Generate data from DGP i with sample size n
-                        data <- generate_data_ca_binary_zy_cont(n,
+                        data <- GenerateDataCABinaryZYCont(n,
                                                            pc = pc,
                                                            par.a.c = par.a.c,
                                                            par.z.a = par.z.a,
@@ -89,30 +89,35 @@ for (i in 1:nrow(parameters)){
                         fit.y.ac <- lm(y ~ a + c, data = data)
         
                         # Semiparametric estimates
-                        est.if.fd <- EstimateIFFrontDoor(exposure = data$a,intermediate = data$z,outcome = data$y,
-                                                                        fit.z = fit.z, fit.y.az = fit.y.az, astar = 1) -
-                                EstimateIFFrontDoor(exposure = data$a,intermediate = data$z,outcome = data$y,
-                                                                   fit.z = fit.z, fit.y.az = fit.y.az,  astar = 0)
                         est.if.bd <- EstimateIFBackDoor(cov.vals.all = data$c, exposure = data$a, outcome = data$y,
-                                                                       fit.a = fit.a, fit.z = fit.z, fit.y.ac = fit.y.ac, astar = 1) -
+                                                        fit.a.c = fit.a, fit.z.a = fit.z, fit.y.ac = fit.y.ac, astar = 1) -
                                 EstimateIFBackDoor(cov.vals.all = data$c, exposure = data$a, outcome = data$y,
-                                                                  fit.a = fit.a, fit.z = fit.z, fit.y.ac = fit.y.ac, astar = 0)
+                                                   fit.a.c = fit.a, fit.z.a = fit.z, fit.y.ac = fit.y.ac, astar = 0)
+                        
+                        est.if.fd <- EstimateIFFrontDoor(exposure = data$a,intermediate = data$z,outcome = data$y, est.pa = mean(data$a),
+                                                                        fit.z = fit.z, fit.y.az = fit.y.az, astar = 1) -
+                                EstimateIFFrontDoor(exposure = data$a,intermediate = data$z,outcome = data$y, est.pa = mean(data$a),
+                                                                   fit.z = fit.z, fit.y.az = fit.y.az,  astar = 0)
+                        
                         est.if.td <- EstimateIFTwoDoor(cov.vals.all= data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
-                                                                      fit.a = fit.a, fit.z = fit.z, fit.y = fit.y, astar = 1) -
+                                                                      fit.a.c = fit.a, fit.z.a = fit.z, fit.y.zc = fit.y, astar = 1) -
                                 EstimateIFTwoDoor(cov.vals.all = data$c, exposure = data$a,intermediate = data$z,outcome = data$y,
-                                                                 fit.a = fit.a, fit.z = fit.z, fit.y = fit.y, astar = 0)
-                        est.eif.td.bd <- EstimateIFTwoBackDoor(cov.vals.all= data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
-                                                                fit.a = fit.a, fit.z = fit.z, fit.y = fit.y, astar = 1) -
-                                EstimateIFTwoBackDoor(cov.vals.all = data$c, exposure = data$a,intermediate = data$z,outcome = data$y,
-                                                       fit.a = fit.a, fit.z = fit.z, fit.y = fit.y, astar = 0)
+                                                                 fit.a.c = fit.a, fit.z.a = fit.z, fit.y.zc = fit.y, astar = 0)
+                        
+                        est.eif.bd.td <- EstimateIFBackTwoDoor(cov.vals.all= data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
+                                                                fit.a.c = fit.a, fit.z.a = fit.z, fit.y.zc = fit.y, astar = 1) -
+                                EstimateIFBackTwoDoor(cov.vals.all = data$c, exposure = data$a,intermediate = data$z,outcome = data$y,
+                                                       fit.a.c = fit.a, fit.z.a = fit.z, fit.y.zc = fit.y, astar = 0)
+                        
+                        
                         est.eif.fd.td <- EstimateIFFrontTwoDoor(cov.vals.all= data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
-                                                                 fit.a = fit.a, fit.z = fit.z, fit.y = fit.y, astar = 1) -
+                                                                 est.pc = mean(data$c), fit.a.c = fit.a, fit.z.a = fit.z, fit.y.zc = fit.y, astar = 1) -
                                 EstimateIFFrontTwoDoor(cov.vals.all = data$c, exposure = data$a,intermediate = data$z,outcome = data$y,
-                                                        fit.a = fit.a, fit.z = fit.z, fit.y = fit.y, astar = 0)
-                        est.eif.all <- EstimateIFAll(cov.vals.all= data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
-                                                      fit.a = fit.a, fit.z = fit.z, fit.y = fit.y, astar = 1) -
-                                EstimateIFAll(cov.vals.all = data$c, exposure = data$a,intermediate = data$z,outcome = data$y,
-                                               fit.a = fit.a, fit.z = fit.z, fit.y = fit.y, astar = 0)
+                                                       est.pc = mean(data$c), fit.a.c = fit.a, fit.z.a = fit.z, fit.y.zc = fit.y, astar = 0)
+                        est.eif.all <- EstimateIFBackFrontTwoDoor(cov.vals.all= data$c, exposure = data$a, intermediate = data$z, outcome = data$y,
+                                                                 est.pc = mean(data$c),fit.a.c = fit.a, fit.z.a = fit.z, fit.y.zc = fit.y, astar = 1) -
+                                EstimateIFBackFrontTwoDoor(cov.vals.all = data$c, exposure = data$a,intermediate = data$z,outcome = data$y,
+                                                           est.pc = mean(data$c), fit.a.c = fit.a, fit.z.a = fit.z, fit.y.zc = fit.y, astar = 0)
         
         
                         # Parametric estimates
@@ -123,9 +128,9 @@ for (i in 1:nrow(parameters)){
         
                         
                         c(i,  ate,  n, parameters[i, "alpha1"], parameters[i,"beta1"], parameters[i,"gamma1"], parameters[i,"gamma2"],
-                          sapply(list(est.if.fd, est.if.bd, est.if.td, est.eif.td.bd, est.eif.fd.td, est.eif.all), mean),
+                          sapply(list(est.if.fd, est.if.bd, est.if.td, est.eif.bd.td, est.eif.fd.td, est.eif.all), mean),
                           est.fd.par, est.bd.par, est.td.par, est.naive,
-                          sapply(list(est.if.fd, est.if.bd, est.if.td, est.eif.td.bd, est.eif.fd.td, est.eif.all), var),
+                          sapply(list(est.if.fd, est.if.bd, est.if.td, est.eif.bd.td, est.eif.fd.td, est.eif.all), var),
                           bound.fd.value, bound.bd.value, bound.td.value, bound.eif.td.bd.value, bound.eif.fd.td.value, bound.eif.fd.td.bd.value)
                 }
                 sim.results <- rbind(sim.results, parOut)
