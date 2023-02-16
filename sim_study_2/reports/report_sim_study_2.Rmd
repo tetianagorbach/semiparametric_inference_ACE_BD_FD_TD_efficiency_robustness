@@ -29,7 +29,7 @@ Transform to a long format:
 sim.results.long <- sim.results %>%
   gather(method, ate.est, BD:`BD FD TD`, factor_key = TRUE) %>%
   mutate(
-    `estimated ATE - true ATE` = ate.est - ate,
+    `estimated ACE - true ACE` = ate.est - ate,
     method = factor(method, levels = c("FD", "FD TD", "BD", "BD TD", "TD", "BD FD TD")),
     misspecification = factor(misspecification,
       levels = c("Z", "C, A, Y", "C, Z", "A, Y"),
@@ -48,7 +48,7 @@ cbbPalette <- c("#E69F00", "#D55E00", "#56B4E9", "#0072B2", "#009E73", "#000000"
 names(cbbPalette) <- levels(sim.results.long$method)
 
 p <- sim.results.long %>%
-  ggplot(aes(x = misspecification, y = `estimated ATE - true ATE`, fill = method)) +
+  ggplot(aes(x = misspecification, y = `estimated ACE - true ACE`, fill = method)) +
   geom_boxplot() +
   scale_fill_manual(values = alpha(cbbPalette, .7)) +
   xlab("Model misspecification") +
