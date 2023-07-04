@@ -139,7 +139,7 @@ nrow = 2, heights = c(10, 1)
 
 
 
-pdf("Figure_sim_study_mv_cov00.pdf", height = 5, width = 6)
+pdf("Figure_sim_study_mv_cov.pdf", height = 5, width = 6)
 grid.arrange(arrangeGrob(p1 + theme(legend.position = "none"),
   nrow = 1),
 mylegend,
