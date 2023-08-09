@@ -1,6 +1,6 @@
 #!/bin/bash
 ### SNAC project number, enter your own
-#SBATCH -A SNIC2020-5-672 
+#SBATCH -A hpc2n2023-086 
 # Asking for one core
 #SBATCH -n 1
 #SBATCH --time=60:20:00
