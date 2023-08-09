@@ -128,7 +128,7 @@ for (i in 1:nrow(parameters)){
                                                    sigma.y = sigma.y)
                 
                 # Fit nuisance models
-                pc <-  mean(data$c)
+                pc.est <-  mean(data$c)
                 fit.a.c <- glm(a ~ c, data = data, family = binomial)
                 pa <- mean(data$a)
                 fit.z.a <- lm(z ~ a , data = data)
@@ -162,7 +162,7 @@ for (i in 1:nrow(parameters)){
                 # Semiparametric estimates
                 # Misspecified p(Z|A) - all consistent
                 est1 <-  c("misspecification" = 1,   "ate" = ate,
-                           estimates(pc.miss = pc, 
+                           estimates(pc.miss = pc.est, 
                                      fit.a.c.miss = fit.a.c, pa.miss = pa,
                                      fit.z.a.miss = fit.z.a.misspecified, 
                                      fit.y.zc.miss = fit.y.zc,
@@ -188,7 +188,7 @@ for (i in 1:nrow(parameters)){
                           ))
                 # Misspecified p(A|C) & E(Y|Z,C) - BD, TD - unbiased; BD&TD, BD&FD&TD - biased. 
                 est4 <- c("misspecification" = 4,  "ate" = ate,
-                          estimates(pc.miss = pc, 
+                          estimates(pc.miss = pc.est, 
                                     fit.a.c.miss = fit.a.c.misspecified, pa.miss = pa,
                                     fit.z.a.miss = fit.z.a, 
                                     fit.y.zc.miss = fit.y.zc.misspecified,
