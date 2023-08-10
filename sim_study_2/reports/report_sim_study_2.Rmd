@@ -19,7 +19,7 @@ require(xtable)
 \tableofcontents
 
 ```{r, read results}
-load("../results/sim_study_misspecification_res2021_07_22_17_41_00.Rdata")
+load("../results/sim_study_misspecification_res2023_08_09_19_32_22.Rdata")
 sim.results <- as.data.frame(output[[1]])
 ```
 
@@ -33,7 +33,7 @@ sim.results.long <- sim.results %>%
     method = factor(method, levels = c("FD", "FD TD", "BD", "BD TD", "TD", "BD FD TD")),
     misspecification = factor(misspecification,
       levels = c("Z", "C, A, Y", "C, Z", "A, Y"),
-      labels = c("1.p(Z|A)", "2.All except p(Z|A)", "3.p(C), p(Z|A)", "4.p(A|C), E(Y|Z,C)")
+      labels = c("1. p(Z|A)", "2. All except p(Z|A)", "3. p(C), p(Z|A)", "4. p(A|C), E(Y|Z,C)")
     )
   )
 ```
@@ -118,15 +118,22 @@ result.sc.emp.var <- sim.results.long %>%
 result.sc.emp.var
 ```
 
-## Printing for LaTeX:
+## Printing for LaTeX
 ```{r}
 print(xtable(
-  rbind(result.bias.se.mse, result.sc.emp.var),
+  rbind(result.bias.se.mse, result.sc.emp.var)%>%
+        mutate(stat = recode(stat,  "bias" ="Bias", "empse" = "EmpSE", "mse" = "MSE", "ScEmpSE^2" = "ScEmpVar" )),
   align = rep("r", 9)
 ),
 include.rownames = F
 )
 ```
+
+```{r}
+rbind(result.bias.se.mse, result.sc.emp.var)%>%
+        mutate(stat = recode(stat,  "bias" ="Bias", "empse" = "EmpSE", "mse" = "MSE", "ScEmpSE^2" = "ScEmpVar" ))
+```
+
 
 
 
