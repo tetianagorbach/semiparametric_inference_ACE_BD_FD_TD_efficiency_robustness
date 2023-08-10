@@ -6,7 +6,7 @@ Rscripts contains the following files:
         
         - job_2.sh provides the parameters and the code used to run the simulation study on HPC2N. To run the code on HPC2N, first one has to log in to HPC2N and then run the command  sbatch job_2.sh in Terminal (job_2.sh should be moved to the root directory).
         
-        - run_sim_study_2.R provides the code to run the simulation study
+        - run_sim_study_2.R provides the code to run simulation study 2. Note that this code sources sim_study_1/Rscripts/if_bounds_utils.R that includes functions common for simulation studies 1 and 2.
         
         - sim_study_2_parameters.R initialises the parameters of the simulation study.
 
